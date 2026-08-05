@@ -171,9 +171,10 @@ input,select,textarea{font-family:inherit}
 .ex-t b{display:block;font-size:14px;font-weight:600;letter-spacing:-.2px}
 .ex-t small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px;letter-spacing:.6px}
 .ex-chev{color:var(--dim);font-size:15px;transition:.25s;flex-shrink:0}
-.ex.open .ex-chev{transform:rotate(180deg)}
-.ex-b{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.22,1,.36,1)}
-.ex.open .ex-b{max-height:460px}
+
+.ex-b{overflow:hidden;transition:max-height .35s cubic-bezier(.22,1,.36,1);max-height:600px}
+.ex.shut .ex-b{max-height:0}
+.ex.shut .ex-chev{transform:rotate(180deg)}
 .ex-in{padding:2px 16px 16px}
 .sets{display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap}
 .set{flex:1;min-width:56px;background:var(--surf2);border-radius:var(--r-sm);padding:10px 6px;text-align:center;transition:.2s;border:1px solid transparent}
@@ -271,7 +272,7 @@ textarea.fi{min-height:88px;resize:vertical;line-height:1.5}
 .fcat::-webkit-scrollbar{display:none}
 .fcat button{flex-shrink:0;padding:9px 15px;border-radius:999px;background:var(--surf2);font-size:12px;color:var(--dim);transition:.2s;white-space:nowrap}
 .fcat button.on{background:linear-gradient(120deg,var(--heat1),var(--heat3));color:#fff;font-weight:600}
-.flist{max-height:270px;overflow-y:auto;margin-bottom:14px;border-radius:var(--r-md);background:rgba(0,0,0,.2)}
+.flist{margin-bottom:16px;border-radius:var(--r-md);background:rgba(0,0,0,.22);overflow:hidden}
 .fitem{display:flex;align-items:center;gap:11px;padding:11px 13px;border-bottom:1px solid var(--line)}
 .fitem:last-child{border-bottom:none}
 .fchk{width:24px;height:24px;border-radius:8px;border:1.8px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:.18s;color:transparent}
@@ -282,7 +283,7 @@ textarea.fi{min-height:88px;resize:vertical;line-height:1.5}
 .fqty{display:flex;align-items:center;gap:7px;flex-shrink:0}
 .fqty button{width:26px;height:26px;border-radius:50%;background:var(--surf2);font-size:15px;color:var(--dim);display:flex;align-items:center;justify-content:center;line-height:1}
 .fqty span{font-family:var(--mono);font-size:11px;min-width:26px;text-align:center}
-.ftot{position:sticky;bottom:0;background:var(--ink2);border-top:1px solid var(--line);padding:14px 0 0;margin-top:4px}
+.ftot{border-top:1px solid var(--line);padding:18px 0 0;margin-top:8px}
 .ftot-row{display:flex;gap:9px;margin-bottom:13px}
 .ftot-c{flex:1;background:var(--surf2);border-radius:var(--r-sm);padding:11px;text-align:center}
 .ftot-c b{display:block;font-family:var(--mono);font-size:19px;font-weight:700}
@@ -292,6 +293,22 @@ textarea.fi{min-height:88px;resize:vertical;line-height:1.5}
 .empty div{font-size:34px;margin-bottom:12px;opacity:.5}
 .report{font-family:var(--mono);font-size:11.5px;line-height:2.05;color:var(--dim)}
 .report b{color:var(--txt);font-weight:400}
+
+/* ═══ ÉCRAN LARGE : on centre l'app au lieu de tout étirer ═══ */
+@media (min-width:720px){
+  body{background:#05070C}
+  .amb1{right:calc(50% - 300px)}
+  .amb2{left:calc(50% - 300px)}
+  #lock{max-width:460px;left:50%;right:auto;transform:translateX(-50%);
+        border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--ink)}
+  #app{max-width:460px;margin:0 auto;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  .tabs{max-width:428px;left:50%;right:auto;transform:translateX(-50%);width:calc(100% - 32px)}
+  .sh-bg{align-items:center;justify-content:center}
+  .sh{max-width:460px;border-radius:30px;max-height:88dvh;border-bottom:1px solid var(--line);
+      padding-bottom:26px;animation:pop .3s cubic-bezier(.22,1,.36,1)}
+  @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .tst{bottom:40px}
+}
 </style>
 </head>
 <body>
@@ -766,7 +783,7 @@ textarea.fi{min-height:88px;resize:vertical;line-height:1.5}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=3"></script>
+<script src="data.js?v=4"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -985,7 +1002,7 @@ function sport(){
       <div class="ex-h" onclick="toggleEx(${i})">
         <div class="ex-n">${allDone?'✓':String(i+1).padStart(2,'0')}</div>
         <div class="ex-t"><b>${e.n}</b><small>${e.s} × ${e.r}${e.kg?'  ·  '+e.kg+' KG':''}</small></div>
-        <div class="ex-chev">⌄</div>
+        <div class="ex-chev">⌃</div>
       </div>
       <div class="ex-b"><div class="ex-in">
         <div class="sets">${hits.map((v,j)=>`
@@ -1012,20 +1029,20 @@ function exProg(t,d){
   ex.forEach((e,i)=>{total+=e.s;(S.sets[setKey(t,i,day)]||[]).forEach(v=>v&&done++)});
   return{done,total,pct:total?Math.round(done/total*100):0};
 }
-function toggleEx(i){$('ex'+i).classList.toggle('open')}
+function toggleEx(i){$('ex'+i).classList.toggle('shut')}
 function hitSet(key,j,n){
   const a=S.sets[key]||Array(n).fill(0);
   a[j]=a[j]?0:1;S.sets[key]=a;LS.set('sets',S.sets);
   if(navigator.vibrate)navigator.vibrate(16);
-  const open=[...document.querySelectorAll('.ex.open')].map(e=>e.id);
-  sport();open.forEach(id=>$(id)&&$(id).classList.add('open'));
+  const shut=[...document.querySelectorAll('.ex.shut')].map(e=>e.id);
+  sport();shut.forEach(id=>$(id)&&$(id).classList.add('shut'));
   home();sync('sets',{key,done:a});
 }
 function allSets(key,n,v){
   S.sets[key]=Array(n).fill(v);LS.set('sets',S.sets);
   toast(v?'✓ Exercice validé':'Séries remises à zéro');
-  const open=[...document.querySelectorAll('.ex.open')].map(e=>e.id);
-  sport();open.forEach(id=>$(id)&&$(id).classList.add('open'));
+  const shut=[...document.querySelectorAll('.ex.shut')].map(e=>e.id);
+  sport();shut.forEach(id=>$(id)&&$(id).classList.add('shut'));
   home();score();
 }
 
@@ -1926,9 +1943,17 @@ function go(p){
   $('view').scrollTop=0;
   ({home,sport,nutri,poids,score:()=>{score();trophies();reports()}}[p]||(()=>{}))();
 }
+/* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
+(function(){
+  const V='4';
+  if(localStorage.getItem('za_build')!==V){
+    localStorage.setItem('za_build',V);
+    if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
+  }
+})();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=3').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=4').catch(()=>{});
 }
 </script>
 </body>
