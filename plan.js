@@ -169,3 +169,100 @@ function makePlan(targets, fasting, seed){
     return {...r, ...built};
   });
 }
+
+/* ═══════════════════════════════════════════
+   REMPLACEMENT D'UN ALIMENT
+   On garde l'apport du plat d'origine et on
+   recalcule la quantité du remplaçant.
+   ═══════════════════════════════════════════ */
+
+/* Recherche souple dans la base */
+function searchFood(q){
+  const s = q.trim().toLowerCase();
+  if(s.length < 2) return [];
+  const out = [];
+  for(const k in FOODS){
+    FOODS[k].items.forEach(f => {
+      const n = f.n.toLowerCase();
+      if(n.includes(s)) out.push({...f, cat:k, exact:n.startsWith(s)});
+    });
+  }
+  return out.sort((a,b) => (b.exact?1:0) - (a.exact?1:0)).slice(0, 8);
+}
+
+/* Quantité du remplaçant pour un apport équivalent.
+   Sur une protéine on aligne les protéines, sinon les calories. */
+function swapQty(oldItem, newFood){
+  const oldP = oldItem.p * oldItem.m;
+  const oldK = oldItem.k * oldItem.m;
+  let m;
+  if(oldItem.cat === 'prot' && newFood.p > 0)      m = oldP / newFood.p;
+  else if(newFood.k > 0)                            m = oldK / newFood.k;
+  else                                              m = 1;
+  m = Math.max(.5, Math.round(m * 2) / 2);
+  return {
+    n:newFood.n, u:newFood.u, q:newFood.q,
+    p:newFood.p, k:newFood.k, cat:newFood.cat, m
+  };
+}
+
+/* Estimation pour un aliment absent de la base */
+function guessFoodItem(txt){
+  let hit = null;
+  for(const [re, v] of GUESS){ if(re.test(txt)){ hit = v; break; } }
+  if(!hit) hit = {p:20, k:400};
+  return {n:txt, u:'portion', q:1, p:hit.p, k:hit.k, cat:'prot'};
+}
+
+/* ═══════════════════════════════════════════
+   COMPOSITION CORPORELLE
+   À partir des mensurations déjà saisies.
+   ═══════════════════════════════════════════ */
+
+/* Masse grasse — méthode US Navy (homme).
+   Nécessite tour de taille, tour de cou et hauteur, en cm. */
+function bodyFatNavy(taille, cou, hauteur){
+  if(!taille || !cou || !hauteur) return null;
+  const diff = taille - cou;
+  if(diff <= 0) return null;
+  const bf = 495 / (1.0324 - 0.19077*Math.log10(diff) + 0.15456*Math.log10(hauteur)) - 450;
+  if(!isFinite(bf) || bf < 3 || bf > 60) return null;
+  return Math.round(bf * 10) / 10;
+}
+
+/* Eau corporelle totale — formule de Watson (homme), en litres. */
+function totalBodyWater(kg, hauteur, age){
+  if(!kg || !hauteur) return null;
+  const tbw = 2.447 - 0.09156*(age||35) + 0.1074*hauteur + 0.3362*kg;
+  return Math.round(tbw * 10) / 10;
+}
+
+/* Composition complète.
+   La masse osseuse reste une approximation large :
+   on l'annonce comme telle dans l'interface.        */
+function bodyComp(kg, mensu, profile){
+  const cm  = (profile && profile.cm)  || 171;
+  const age = (profile && profile.age) || 35;
+  const bf  = bodyFatNavy(+mensu.taille, +mensu.cou, cm);
+  if(bf === null || !kg) return null;
+
+  const fatKg  = Math.round(kg * bf / 100 * 10) / 10;
+  const leanKg = Math.round((kg - fatKg) * 10) / 10;
+  const water  = totalBodyWater(kg, cm, age);
+  // Masse osseuse minérale : environ 4,5 % du poids chez l'homme adulte
+  const bone   = Math.round(kg * 0.045 * 10) / 10;
+  // Muscle squelettique : environ 53 % de la masse maigre
+  const muscle = Math.round(leanKg * 0.53 * 10) / 10;
+
+  return {bf, fatKg, leanKg, water, bone, muscle,
+          waterPct: water ? Math.round(water / kg * 1000) / 10 : null};
+}
+
+/* Lecture du pourcentage de masse grasse, homme adulte */
+function bfLabel(bf){
+  if(bf < 8)  return ['Très bas',            'r'];
+  if(bf < 14) return ['Athlétique',          'c'];
+  if(bf < 18) return ['En forme',            'c'];
+  if(bf < 25) return ['Moyenne',             'i'];
+  return ['Au-dessus de la moyenne',         'w'];
+}

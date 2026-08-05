@@ -339,6 +339,19 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .pitem:last-of-type{border-bottom:none}
 .pitem i{font-style:normal;font-size:15px;width:22px;flex-shrink:0}
 .pitem b{font-family:var(--mono);font-size:12px;color:var(--heat1);margin-left:auto;flex-shrink:0;font-weight:700}
+.sug{display:flex;align-items:center;gap:11px;padding:13px;border-radius:16px;background:var(--surf2);margin-bottom:9px;transition:.18s}
+.sug:active{background:rgba(255,138,76,.15)}
+.sug .sn2{flex:1;min-width:0}
+.sug .sn2 b{display:block;font-size:13.5px;font-weight:600}
+.sug .sn2 small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px}
+.sug .sq{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--heat1);flex-shrink:0}
+.pitem.tap{cursor:pointer}
+.pitem.tap:active{opacity:.6}
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:15px}
+.comp{background:var(--surf2);border-radius:18px;padding:14px}
+.comp .cv{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
+.comp .ck{font-size:10px;color:var(--dim);margin-top:5px;line-height:1.3}
+.mens-why{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.35}
 /* ═══ ÉCRAN LARGE : on centre l'app au lieu de tout étirer ═══ */
 @media (min-width:720px){
   body{background:#05070C}
@@ -596,6 +609,9 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
           </div>
           <button class="btn btn-p" onclick="sheet('sh-hebdo')">📏 Faire mon bilan du dimanche</button>
         </div>
+        <div class="lbl">Composition de mon corps</div>
+        <div class="card" id="c-comp"></div>
+
         <div class="lbl">Mensurations</div>
         <div class="card" id="c-mensu"></div>
         <div class="lbl">Évolution des mensurations</div>
@@ -761,6 +777,7 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
     <div class="fg"><label class="fl">HANCHES (CM)</label><input class="fi" id="h-hanches" inputmode="decimal" placeholder="99"/></div>
     <div class="fg"><label class="fl">COU (CM)</label><input class="fi" id="h-cou" inputmode="decimal" placeholder="40"/></div>
   </div>
+  <div class="note i" style="margin:0 0 16px">Le tour de taille et le tour de cou servent à estimer ta masse grasse, ton muscle et ton eau corporelle. Prends-les au même endroit à chaque fois.</div>
   <div class="fg"><label class="fl">TENSION (OPTIONNEL)</label>
     <div class="duo"><input class="fi" id="h-sys" inputmode="numeric" placeholder="Systolique 130"/><input class="fi" id="h-dia" inputmode="numeric" placeholder="Diastolique 85"/></div></div>
   <div class="fg"><label class="fl">PHOTOS FACE · PROFIL · DOS</label>
@@ -833,6 +850,17 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
   <button class="btn btn-g" style="margin-top:10px" onclick="shHide('sh-tension')">Annuler</button>
 </div></div>
 
+<div class="sh-bg" id="sh-swap" onclick="shClose(event,'sh-swap')"><div class="sh">
+  <div class="sh-grip"></div>
+  <div class="sh-t" id="swap-t">Remplacer</div>
+  <div class="sh-s" id="swap-s">Écris ce que tu veux à la place, je calcule la quantité.</div>
+  <div class="fg">
+    <input class="fi" id="swap-q" placeholder="Ex : patate douce, poisson, chapati…" oninput="swapSearch()" autocomplete="off"/>
+  </div>
+  <div id="swap-res"></div>
+  <button class="btn btn-g" style="margin-top:8px" onclick="shHide('sh-swap')">Annuler</button>
+</div></div>
+
 <div class="timer" id="timer">
   <div class="timer-n" id="timer-n">0:00</div>
   <div class="timer-l" id="timer-l">Repos</div>
@@ -842,9 +870,9 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=5"></script>
-<script src="exercises.js?v=5"></script>
-<script src="plan.js?v=5"></script>
+<script src="data.js?v=6"></script>
+<script src="exercises.js?v=6"></script>
+<script src="plan.js?v=6"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -867,7 +895,8 @@ let S={
   sets:LS.get('sets',{}),              // {'2026-08-05|Push|0':[1,1,0,0]}
   sleep:LS.get('sleep',[]),
   tension:LS.get('tension',[]),
-  fast:LS.get('fast',{})
+  fast:LS.get('fast',{}),
+  subs:LS.get('subs',{})
 };
 
 /* ══════ PROGRAMME ══════ */
@@ -1326,12 +1355,21 @@ function poids(){
   $('pw-kg').textContent=lw?lw.kg.toFixed(1)+' kg':'—';
   $('pw-week').textContent=lw?'SEMAINE '+S.weekly.length:'À VENIR';
 
-  const M=[['Tour de taille','taille','📏'],['Poitrine','poitrine','🫁'],['Bras droit','bras','💪'],['Cuisse','cuisse','🦵'],['Hanches','hanches','🔻'],['Cou','cou','🔺']];
+  const M=[
+    ['Tour de taille','taille','📏','La mesure la plus parlante : c\'est là que part la graisse en premier. Sert au calcul de ta masse grasse.'],
+    ['Cou','cou','🔺','Combiné à ta taille, il permet d\'estimer ton pourcentage de masse grasse sans balance.'],
+    ['Poitrine','poitrine','🫁','Suit le volume du haut du corps pendant la perte de poids.'],
+    ['Bras droit','bras','💪','Bon indicateur : s\'il tient pendant que le poids baisse, tu gardes ton muscle.'],
+    ['Cuisse','cuisse','🦵','Même logique que le bras, pour le bas du corps.'],
+    ['Hanches','hanches','🔻','Complète le tour de taille pour suivre la répartition.']];
   $('c-mensu').innerHTML=lw?M.map((m,i)=>`
-    <div class="rowb" style="padding:11px 0;${i<M.length-1?'border-bottom:1px solid var(--line)':''}">
-      <span class="tiny">${m[2]} ${m[0]}</span>
-      <span class="mono" style="font-size:15px;font-weight:700">${lw[m[1]]?lw[m[1]]+' cm':'—'}</span></div>`).join('')
+    <div style="padding:12px 0;${i<M.length-1?'border-bottom:1px solid var(--line)':''}">
+      <div class="rowb">
+        <span class="tiny">${m[2]} ${m[0]}</span>
+        <span class="mono" style="font-size:15px;font-weight:700">${lw[m[1]]?lw[m[1]]+' cm':'—'}</span></div>
+      <div class="mens-why">${m[3]}</div></div>`).join('')
     :`<div class="empty" style="padding:24px"><div>📏</div>Aucune mensuration enregistrée.</div>`;
+  renderComp(lw,kg);
 
   const p1=S.weekly.length>1?S.weekly[S.weekly.length-2]:null;
   $('c-mensu-evo').innerHTML=(lw&&p1)?M.map((m,i)=>{
@@ -1369,6 +1407,58 @@ function poids(){
       <div class="bar"><i class="${done?'fill-c':'fill-h'}" style="width:${prog}%"></i></div></div>`;
   }).join('');
   renderWAlerts();renderTension();
+}
+function renderComp(lw,kg){
+  const el=$('c-comp');if(!el)return;
+  if(!lw||!lw.taille||!lw.cou){
+    el.innerHTML=`<div class="empty" style="padding:24px"><div>🧬</div>
+      Renseigne ton <b>tour de taille</b> et ton <b>tour de cou</b><br/>lors du bilan du dimanche.<br/>
+      <span class="tiny">Ces deux mesures suffisent à estimer ta masse grasse.</span></div>`;
+    return;
+  }
+  const c=bodyComp(kg||lw.kg,lw,S.profile);
+  if(!c){el.innerHTML=`<div class="empty" style="padding:24px"><div>🧬</div>Mesures incohérentes — vérifie ton tour de cou.</div>`;return}
+  const [lab,tone]=bfLabel(c.bf);
+  el.innerHTML=`
+    <div class="rowb">
+      <div><div class="tiny dim mono" style="letter-spacing:2px">MASSE GRASSE ESTIMÉE</div>
+        <div class="dsp" style="font-size:40px;margin-top:5px">${c.bf}<span style="font-size:20px;color:var(--dim)">%</span></div></div>
+      <span class="pill ${tone==='c'?'cool':tone==='w'?'heat':''}">${lab.toUpperCase()}</span></div>
+    <div class="comp-grid">
+      <div class="comp"><div class="cv" style="color:var(--heat1)">${c.fatKg} kg</div>
+        <div class="ck">de graisse<br/>c'est ça qui doit baisser</div></div>
+      <div class="comp"><div class="cv" style="color:var(--cool1)">≈ ${c.muscle} kg</div>
+        <div class="ck">de muscle<br/>à préserver absolument</div></div>
+      <div class="comp"><div class="cv" style="color:var(--cool2)">${c.water} L</div>
+        <div class="ck">d'eau corporelle${c.waterPct?'<br/>'+c.waterPct+'% de ton poids':''}</div></div>
+      <div class="comp"><div class="cv" style="color:var(--rest)">≈ ${c.bone} kg</div>
+        <div class="ck">de masse osseuse<br/>ne bouge quasiment pas</div></div>
+    </div>
+    <div class="rowb" style="margin-top:13px;padding-top:13px;border-top:1px solid var(--line)">
+      <span class="tiny dim">Masse maigre totale</span>
+      <span class="mono" style="font-size:15px;font-weight:700;color:var(--cool1)">${c.leanKg} kg</span></div>
+    ${(()=>{
+      if(S.weekly.length<2)return '';
+      const prev=S.weekly[S.weekly.length-2];
+      const pc=bodyComp(prev.kg,prev,S.profile);
+      if(!pc)return '';
+      const dBf=(c.bf-pc.bf).toFixed(1),dFat=(c.fatKg-pc.fatKg).toFixed(1),dMus=(c.muscle-pc.muscle).toFixed(1);
+      return `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <div class="mono tiny dim" style="letter-spacing:2px;margin-bottom:10px">DEPUIS LE BILAN PRÉCÉDENT</div>
+        <div class="rowb" style="padding:6px 0"><span class="tiny">Masse grasse</span>
+          <span class="pill ${dBf<=0?'cool':'heat'}">${dBf>0?'+':''}${dBf} %</span></div>
+        <div class="rowb" style="padding:6px 0"><span class="tiny">Graisse</span>
+          <span class="pill ${dFat<=0?'cool':'heat'}">${dFat>0?'+':''}${dFat} kg</span></div>
+        <div class="rowb" style="padding:6px 0"><span class="tiny">Muscle</span>
+          <span class="pill ${dMus>=0?'cool':'heat'}">${dMus>0?'+':''}${dMus} kg</span></div>
+      </div>`;
+    })()}
+    <div class="note i" style="margin:15px 0 0">
+      <b>Comment c'est calculé.</b> La masse grasse vient de la méthode US Navy : tour de taille moins tour de cou, rapporté à ta taille. L'eau corporelle vient de la formule de Watson. Ces estimations valent surtout par leur <b>évolution</b> : ce qui compte, c'est que le chiffre baisse pendant que ta masse maigre tient.
+    </div>
+    <div class="note w" style="margin:11px 0 0">
+      Pour un chiffre exact, il faut un DEXA en clinique. Une balance à impédance donne un résultat proche de cette estimation — ni plus, ni moins fiable.
+    </div>`;
 }
 function frDate(s){const d=new Date(s+'T12:00:00');return DAYS[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()]}
 function drawCurve(){
@@ -1860,7 +1950,15 @@ function planSeed(){
 }
 function renderPlan(){
   const g=S.goals,t=WEEK[new Date().getDay()].t,fast=isFasting();
-  const plan=makePlan(g,fast,planSeed());
+  let plan=makePlan(g,fast,planSeed());
+  const subs=S.subs[dk()]||[];
+  subs.forEach(s=>{
+    const r=plan[s.meal];if(!r)return;
+    const j=r.items.findIndex(x=>x.n===s.from);
+    if(j>=0){r.items[j]=s.to;
+      r.prot=Math.round(r.items.reduce((a,b)=>a+b.p*b.m,0));
+      r.kcal=Math.round(r.items.reduce((a,b)=>a+b.k*b.m,0));}
+  });
   window._plan=plan;
   $('plan-why').innerHTML=fast
     ? `🌙 <b>Mode jeûne activé.</b> Un seul vrai repas, précédé d'une rupture légère. Cible du jour : ${g.kcal} kcal et ${g.prot} g de protéines.`
@@ -1875,14 +1973,16 @@ function renderPlan(){
         <div><div class="plan-t">${r.nom}</div><div class="plan-when">${r.heure.toUpperCase()}</div></div>
         <span class="pill ${done?'cool':'heat'}">${done?'✓ PRIS':r.kcal+' KCAL'}</span>
       </div>
-      ${[...r.items].sort((a,b)=>ORDER.indexOf(a.cat)-ORDER.indexOf(b.cat)).map(x=>`<div class="pitem"><i>${ico[x.cat]||'🍽️'}</i>
-        <span>${x.n}</span><b>${fmtQ(x)}</b></div>`).join('')}
+      ${[...r.items].sort((a,b)=>ORDER.indexOf(a.cat)-ORDER.indexOf(b.cat)).map(x=>`<div class="pitem tap" onclick="openSwap(${i},'${x.n.replace(/'/g,"\\'")}')"><i>${ico[x.cat]||'🍽️'}</i>
+        <span>${x.n}</span><b>${fmtQ(x)}</b>
+        <span style="color:var(--dim);font-size:13px;margin-left:8px">⇄</span></div>`).join('')}
       <div class="rowb" style="margin-top:13px">
         <span class="pill">🥩 ${r.prot} g</span>
         <span class="pill">🔥 ${r.kcal} kcal</span>
       </div>
       <div class="tiny dim" style="margin-top:11px;line-height:1.5">${r.note}</div>
-      ${done?'':`<button class="btn btn-g" style="margin-top:13px" onclick="eatPlan(${i})">J'ai mangé ce repas</button>`}
+      ${done?'':`<button class="btn btn-p" style="margin-top:13px" onclick="eatPlan(${i})">J'ai mangé ce repas</button>
+      <div class="tiny dim" style="margin-top:9px;text-align:center">Touche un aliment pour le remplacer ⇄</div>`}
     </div>`;
   }).join('');
 }
@@ -1896,6 +1996,54 @@ function eatPlan(i){
     p:r.prot,k:r.kcal,faim:0,sat:0,h:new Date().toTimeString().slice(0,5),
     items:r.items.map(x=>({n:x.n,m:x.m,p:x.p,k:x.k}))});
   toast('✓ '+r.nom+' enregistré');
+}
+let swapCtx=null;
+function openSwap(meal,name){
+  const r=window._plan[meal];if(!r)return;
+  const it=r.items.find(x=>x.n===name);if(!it)return;
+  swapCtx={meal,item:it};
+  $('swap-t').textContent='Remplacer '+name;
+  $('swap-s').innerHTML=`Ce plat apporte <b>${Math.round(it.p*it.m)} g</b> de protéines et <b>${Math.round(it.k*it.m)} kcal</b>. Je calcule la quantité équivalente.`;
+  $('swap-q').value='';$('swap-res').innerHTML='';
+  sheet('sh-swap');
+  setTimeout(()=>$('swap-q').focus(),250);
+}
+function swapSearch(){
+  const q=$('swap-q').value,el=$('swap-res');
+  if(q.trim().length<2){el.innerHTML='';return}
+  const hits=searchFood(q);
+  let html=hits.map(f=>{
+    const n=swapQty(swapCtx.item,f);
+    return `<div class="sug" onclick="doSwap('${f.n.replace(/'/g,"\\'")}')">
+      <div class="sn2"><b>${f.n}</b><small>${Math.round(n.p*n.m)} g prot · ${Math.round(n.k*n.m)} kcal</small></div>
+      <div class="sq">${fmtQ(n)}</div></div>`;
+  }).join('');
+  if(!hits.length){
+    const g=guessFoodItem(q.trim()),n=swapQty(swapCtx.item,g);
+    html=`<div class="sug" onclick="doSwapFree()">
+      <div class="sn2"><b>${q.trim()}</b><small>Pas dans ma base — estimation : ${Math.round(n.p*n.m)} g prot · ${Math.round(n.k*n.m)} kcal</small></div>
+      <div class="sq">${fmtQ(n)}</div></div>
+      <div class="tiny dim" style="padding:4px 4px 0;line-height:1.5">Estimation approximative. Tu peux ajuster ensuite dans le composeur.</div>`;
+  }
+  el.innerHTML=html;
+}
+function doSwap(name){
+  const f=searchFood(name).find(x=>x.n===name)||searchFood(name)[0];
+  if(!f)return;
+  applySwap(swapQty(swapCtx.item,f));
+}
+function doSwapFree(){
+  const g=guessFoodItem($('swap-q').value.trim());
+  applySwap(swapQty(swapCtx.item,g));
+}
+function applySwap(newItem){
+  const d=dk();
+  S.subs[d]=(S.subs[d]||[]).filter(s=>!(s.meal===swapCtx.meal&&s.from===swapCtx.item.n));
+  S.subs[d].push({meal:swapCtx.meal,from:swapCtx.item.n,to:newItem});
+  LS.set('subs',S.subs);
+  shHide('sh-swap');
+  toast('✓ '+newItem.n+' — '+fmtQ(newItem));
+  renderPlan();
 }
 function weekStart(){const d=new Date();const o=(d.getDay()+6)%7;d.setDate(d.getDate()-o);return dk(d)}
 function freeMeals(){const ws=weekStart();return S.meals.filter(m=>m.t==='Repas libre'&&m.d>=ws)}
@@ -2180,6 +2328,7 @@ function askReset(){
   S.weights=S.weights.filter(w=>w.d!==d);LS.set('weights',S.weights);
   S.sleep=S.sleep.filter(x=>x.d!==d);LS.set('sleep',S.sleep);
   delete S.fast[d];LS.set('fast',S.fast);
+  delete S.subs[d];LS.set('subs',S.subs);
   renderAll();toast('↺ Journée réinitialisée');
 }
 
@@ -2194,7 +2343,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='5';
+  const V='6';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2202,7 +2351,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=5').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=6').catch(()=>{});
 }
 </script>
 </body>
