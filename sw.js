@@ -1,22 +1,16 @@
-const CACHE = 'zathlete-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
-
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
-});
-
+// Network-first : l'app se met toujours à jour, le cache ne sert que hors ligne.
+const CACHE = 'zathlete-v3';
+self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
-  self.clients.claim();
+  e.waitUntil(caches.keys().then(k => Promise.all(k.map(x => caches.delete(x)))).then(() => self.clients.claim()));
 });
-
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      return cached || fetch(e.request).catch(() => cached);
-    })
+    fetch(e.request).then(r => {
+      const c = r.clone();
+      caches.open(CACHE).then(cache => cache.put(e.request, c)).catch(()=>{});
+      return r;
+    }).catch(() => caches.match(e.request))
   );
 });
