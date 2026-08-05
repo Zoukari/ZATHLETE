@@ -54,3 +54,8 @@ Service worker en **network-first** : l'app se met toujours à jour au lancement
 
 ---
 *ZATHLETE 2026*
+
+---
+
+## 📷 Crédits
+Photos des exercices : [free-exercise-db](https://github.com/yuhonas/free-exercise-db) — domaine public (Unlicense).

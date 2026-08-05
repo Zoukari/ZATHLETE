@@ -176,18 +176,50 @@ function makePlan(targets, fasting, seed){
    recalcule la quantité du remplaçant.
    ═══════════════════════════════════════════ */
 
-/* Recherche souple dans la base */
+/* Aliments enregistrés par l'utilisateur, injectés dans toutes les listes */
+function myFoods(){
+  try{ return JSON.parse(localStorage.getItem('za_myfoods')) || []; }catch{ return []; }
+}
+function saveMyFood(f){
+  const l = myFoods();
+  if(l.some(x => x.n.toLowerCase() === f.n.toLowerCase())) return false;
+  l.push(f);
+  localStorage.setItem('za_myfoods', JSON.stringify(l));
+  return true;
+}
+function delMyFood(name){
+  localStorage.setItem('za_myfoods',
+    JSON.stringify(myFoods().filter(x => x.n !== name)));
+}
+
+/* Toutes les catégories, base + personnels */
+function allCats(){
+  const out = {};
+  for(const k in FOODS) out[k] = {...FOODS[k], items:[...FOODS[k].items]};
+  myFoods().forEach(f => {
+    const c = out[f.cat] ? f.cat : 'prot';
+    out[c].items.unshift({...f, mine:true});
+  });
+  return out;
+}
+
+/* Recherche souple : base + aliments personnels */
 function searchFood(q){
   const s = q.trim().toLowerCase();
   if(s.length < 2) return [];
   const out = [];
+  myFoods().forEach(f => {
+    const n = f.n.toLowerCase();
+    if(n.includes(s)) out.push({...f, mine:true, exact:n.startsWith(s)});
+  });
   for(const k in FOODS){
     FOODS[k].items.forEach(f => {
       const n = f.n.toLowerCase();
       if(n.includes(s)) out.push({...f, cat:k, exact:n.startsWith(s)});
     });
   }
-  return out.sort((a,b) => (b.exact?1:0) - (a.exact?1:0)).slice(0, 8);
+  return out.sort((a,b) =>
+    ((b.mine?2:0)+(b.exact?1:0)) - ((a.mine?2:0)+(a.exact?1:0))).slice(0, 8);
 }
 
 /* Quantité du remplaçant pour un apport équivalent.
@@ -256,6 +288,51 @@ function bodyComp(kg, mensu, profile){
 
   return {bf, fatKg, leanKg, water, bone, muscle,
           waterPct: water ? Math.round(water / kg * 1000) / 10 : null};
+}
+
+/* ─── Indices tirés des mensurations ───
+   Chaque mesure sert à quelque chose de concret.        */
+function bodyIndices(m, hauteur, kg){
+  const h = hauteur || 171;
+  const out = [];
+
+  // Tour de taille rapporté à la taille : le meilleur prédicteur simple
+  if(m.taille){
+    const r = +m.taille / h;
+    const s = r < 0.43 ? ['Bas','r'] : r < 0.5 ? ['Bon','c'] : r < 0.58 ? ['À surveiller','i'] : ['Élevé','w'];
+    out.push({k:'Taille ÷ hauteur', v:r.toFixed(2), s:s[0], t:s[1],
+      d:'Sous 0,50 c\'est la zone visée. C\'est le rapport le plus fiable pour le risque cardiovasculaire.'});
+  }
+
+  // Taille sur hanches : répartition de la graisse
+  if(m.taille && m.hanches){
+    const r = +m.taille / +m.hanches;
+    const s = r < 0.90 ? ['Bon','c'] : r < 0.96 ? ['Moyen','i'] : ['Élevé','w'];
+    out.push({k:'Taille ÷ hanches', v:r.toFixed(2), s:s[0], t:s[1],
+      d:'Sous 0,90 chez l\'homme. Mesure la graisse abdominale, la plus liée au risque métabolique.'});
+  }
+
+  // Épaules/poitrine sur taille : la silhouette en V
+  if(m.poitrine && m.taille){
+    const r = +m.poitrine / +m.taille;
+    const s = r > 1.15 ? ['Athlétique','c'] : r > 1.05 ? ['En progression','i'] : ['À construire','w'];
+    out.push({k:'Poitrine ÷ taille', v:r.toFixed(2), s:s[0], t:s[1],
+      d:'Le rapport qui donne la silhouette en V. Il monte quand la taille descend et que le haut du corps tient.'});
+  }
+
+  // Bras + cuisse : témoin du maintien musculaire
+  if(m.bras && m.cuisse){
+    out.push({k:'Bras + cuisse', v:(+m.bras + +m.cuisse).toFixed(1)+' cm', s:'Repère', t:'i',
+      d:'Ce total doit rester stable ou monter pendant que ton poids baisse. S\'il chute, tu perds du muscle.'});
+  }
+
+  // Cou : entre dans le calcul de la masse grasse
+  if(m.cou){
+    out.push({k:'Tour de cou', v:m.cou+' cm', s:'Calcul', t:'i',
+      d:'Combiné au tour de taille, il donne ton pourcentage de masse grasse par la méthode US Navy.'});
+  }
+
+  return out;
 }
 
 /* Lecture du pourcentage de masse grasse, homme adulte */

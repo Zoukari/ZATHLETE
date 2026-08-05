@@ -296,6 +296,11 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .report b{color:var(--txt);font-weight:400}
 
 /* ─── séance : mouvement, séries, comparaison ─── */
+.pics{display:flex;gap:9px;margin-bottom:14px}
+.pic{flex:1;position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic span{position:absolute;left:8px;bottom:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:1.4px;
+  background:rgba(0,0,0,.72);padding:4px 8px;border-radius:999px;color:#fff}
 .mv{width:76px;height:76px;flex-shrink:0;border-radius:20px;background:rgba(255,255,255,.05);
     border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
 .mv svg{width:60px;height:60px;stroke:var(--heat1);fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
@@ -534,6 +539,11 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
       <div class="pad" id="meals"></div>
       <div class="pad" style="margin-bottom:6px"><button class="btn btn-p" onclick="sheet('sh-repas')">+ Ajouter un repas</button></div>
 
+      <div class="lbl">Mes aliments</div>
+      <div id="myfoods"></div>
+      <div class="pad" style="margin-bottom:6px">
+        <button class="btn btn-g" onclick="sheet('sh-food')">+ Créer un aliment</button></div>
+
       <div class="lbl">Mes repas favoris</div>
       <div id="favs"></div>
 
@@ -611,6 +621,9 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
         </div>
         <div class="lbl">Composition de mon corps</div>
         <div class="card" id="c-comp"></div>
+
+        <div class="lbl">Ce que disent tes mesures</div>
+        <div class="card" id="c-idx"></div>
 
         <div class="lbl">Mensurations</div>
         <div class="card" id="c-mensu"></div>
@@ -850,6 +863,33 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
   <button class="btn btn-g" style="margin-top:10px" onclick="shHide('sh-tension')">Annuler</button>
 </div></div>
 
+<div class="sh-bg" id="sh-food" onclick="shClose(event,'sh-food')"><div class="sh">
+  <div class="sh-grip"></div>
+  <div class="sh-t">Créer un aliment</div>
+  <div class="sh-s">Il rejoindra tes listes et pourra servir dans le plan du jour.</div>
+  <div class="fg"><label class="fl">NOM</label><input class="fi" id="nf-n" placeholder="Ex : Canjeero maison"/></div>
+  <div class="fg"><label class="fl">CATÉGORIE</label>
+    <select class="fi" id="nf-cat">
+      <option value="prot">Protéines</option><option value="fec">Féculents</option>
+      <option value="leg">Légumes</option><option value="fru">Fruits</option>
+      <option value="gras">Matières grasses</option><option value="bois">Boissons</option>
+    </select></div>
+  <div class="duo">
+    <div class="fg"><label class="fl">PORTION</label><input class="fi" id="nf-q" inputmode="decimal" placeholder="150"/></div>
+    <div class="fg"><label class="fl">UNITÉ</label>
+      <select class="fi" id="nf-u"><option>g</option><option>pièce</option><option>portion</option>
+      <option>bol</option><option>verre</option><option>tranche</option><option>poignée</option>
+      <option>c. à soupe</option><option>pot</option></select></div>
+  </div>
+  <div class="duo">
+    <div class="fg"><label class="fl">PROTÉINES (G)</label><input class="fi" id="nf-p" inputmode="numeric" placeholder="20"/></div>
+    <div class="fg"><label class="fl">CALORIES</label><input class="fi" id="nf-k" inputmode="numeric" placeholder="250"/></div>
+  </div>
+  <div class="note i" style="margin:0 0 16px">Tu ne connais pas les valeurs ? Demande à ChatGPT « combien de protéines et de calories pour 150 g de … », puis reporte-les ici.</div>
+  <button class="btn btn-p" onclick="createFood()">Enregistrer l'aliment</button>
+  <button class="btn btn-g" style="margin-top:10px" onclick="shHide('sh-food')">Annuler</button>
+</div></div>
+
 <div class="sh-bg" id="sh-swap" onclick="shClose(event,'sh-swap')"><div class="sh">
   <div class="sh-grip"></div>
   <div class="sh-t" id="swap-t">Remplacer</div>
@@ -870,9 +910,10 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=6"></script>
-<script src="exercises.js?v=6"></script>
-<script src="plan.js?v=6"></script>
+<script src="data.js?v=7"></script>
+<script src="exercises.js?v=7"></script>
+<script src="pics.js?v=7"></script>
+<script src="plan.js?v=7"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -1105,8 +1146,13 @@ function sport(){
       </div>
       <div class="ex-b"><div class="ex-in">
 
+        ${(()=>{const p=exPics(e.n);
+          return p?`<div class="pics">
+            <div class="pic"><img src="ex/${p[0]}" alt="" loading="lazy"/><span>DÉPART</span></div>
+            <div class="pic"><img src="ex/${p[1]}" alt="" loading="lazy"/><span>ARRIVÉE</span></div>
+          </div>`:'';})()}
         <div style="display:flex;gap:14px;margin-bottom:14px">
-          <div class="mv"><svg viewBox="0 0 68 100">${MOVE[info.pat]||MOVE.core}</svg></div>
+          ${exPics(e.n)?'':`<div class="mv"><svg viewBox="0 0 68 100">${MOVE[info.pat]||MOVE.core}</svg></div>`}
           <div style="flex:1;min-width:0">
             <div class="mono tiny dim" style="letter-spacing:1.6px;margin-bottom:6px">MUSCLES CIBLÉS</div>
             <div style="font-size:12.5px;line-height:1.45;margin-bottom:9px">${info.mus}</div>
@@ -1300,7 +1346,29 @@ function nutri(){
         <div style="display:flex;gap:6px;margin-top:6px"><span class="pill">${f.p} g</span><span class="pill">${f.k} kcal</span></div></div>
       <button class="ladd" onclick="addFav(${i})">+</button>
     </div>`).join('');
-  renderLibre();renderJeune();renderSupps();renderPlan();
+  renderLibre();renderJeune();renderSupps();renderPlan();renderMyFoods();
+}
+function renderMyFoods(){
+  const l=myFoods(),el=$('myfoods');if(!el)return;
+  const cats={prot:'🥩',fec:'🍚',leg:'🥗',fru:'🍉',gras:'🥑',bois:'🥤'};
+  el.innerHTML=l.length?l.map(f=>`
+    <div class="lrow">
+      <div class="lico">${cats[f.cat]||'⭐'}</div>
+      <div class="lmain"><b>${f.n}</b><small>${f.q} ${f.u} · ${f.p} g prot · ${f.k} kcal</small></div>
+      <button class="ladd" style="color:var(--dim);font-size:15px" onclick="delMyFood('${f.n.replace(/'/g,"\\'")}');renderMyFoods();toast('Supprimé')">✕</button>
+    </div>`).join('')
+   :`<div class="empty" style="padding:24px"><div>⭐</div>Aucun aliment personnel.<br/>
+     <span class="tiny">Ceux que tu ajoutes depuis ChatGPT ou en texte libre arrivent ici automatiquement.</span></div>`;
+}
+function createFood(){
+  const n=$('nf-n').value.trim();
+  if(!n)return toast('Donne un nom à l\'aliment');
+  const f={n,cat:$('nf-cat').value,q:+$('nf-q').value||100,u:$('nf-u').value,
+           p:+$('nf-p').value||0,k:+$('nf-k').value||0};
+  if(!saveMyFood(f))return toast('Cet aliment existe déjà');
+  ['nf-n','nf-q','nf-p','nf-k'].forEach(x=>$(x).value='');
+  shHide('sh-food');toast('✓ '+n+' ajouté à tes aliments');
+  renderMyFoods();
 }
 function addFav(i){
   const f=FAVS[i];
@@ -1370,6 +1438,16 @@ function poids(){
       <div class="mens-why">${m[3]}</div></div>`).join('')
     :`<div class="empty" style="padding:24px"><div>📏</div>Aucune mensuration enregistrée.</div>`;
   renderComp(lw,kg);
+  const idx=lw?bodyIndices(lw,S.profile.cm,kg||lw.kg):[];
+  $('c-idx').innerHTML=idx.length?idx.map((x,i)=>`
+    <div style="padding:13px 0;${i<idx.length-1?'border-bottom:1px solid var(--line)':''}">
+      <div class="rowb" style="margin-bottom:6px">
+        <span style="font-size:13.5px;font-weight:600">${x.k}</span>
+        <span style="display:flex;align-items:center;gap:9px">
+          <span class="mono" style="font-size:15px;font-weight:700">${x.v}</span>
+          <span class="pill ${x.t==='c'?'cool':x.t==='w'?'heat':x.t==='r'?'heat':''}">${x.s.toUpperCase()}</span></span></div>
+      <div class="mens-why">${x.d}</div></div>`).join('')
+   :`<div class="empty" style="padding:24px"><div>📐</div>Fais ton bilan du dimanche<br/>pour voir ce que tes mesures racontent.</div>`;
 
   const p1=S.weekly.length>1?S.weekly[S.weekly.length-2]:null;
   $('c-mensu-evo').innerHTML=(lw&&p1)?M.map((m,i)=>{
@@ -1873,36 +1951,45 @@ function checkNewTrophies(){
    COMPOSEUR DE REPAS
    ══════════════════════════════════════════ */
 let basket=[],fcat='prot';
+let CATS=null;
 function buildComposer(){
-  $('fcat').innerHTML=Object.keys(FOODS).map(k=>
-    `<button class="${k===fcat?'on':''}" onclick="fcat='${k}';buildComposer()">${FOODS[k].icon} ${FOODS[k].label}</button>`).join('');
-  $('flist').innerHTML=FOODS[fcat].items.map((f,i)=>{
+  CATS=allCats();
+  const mine=myFoods().length;
+  $('fcat').innerHTML=Object.keys(CATS).map(k=>
+    `<button class="${k===fcat?'on':''}" onclick="fcat='${k}';buildComposer()">${CATS[k].icon} ${CATS[k].label}</button>`).join('')
+    +(mine?`<button class="${fcat==='mine'?'on':''}" onclick="fcat='mine';buildComposer()">⭐ Mes aliments (${mine})</button>`:'');
+  const items=fcat==='mine'?myFoods():CATS[fcat].items;
+  $('flist').innerHTML=items.length?items.map((f,i)=>{
     const b=basket.find(x=>x.key===fcat+'|'+i);
     const mult=b?b.m:1;
     return `<div class="fitem ${b?'in':''}">
       <div class="fchk" onclick="tog('${fcat}',${i})">✓</div>
       <div class="fnm" onclick="tog('${fcat}',${i})">
-        <b>${f.n}</b>
+        <b>${f.mine||fcat==='mine'?'⭐ ':''}${f.n}</b>
         <small>${Math.round(f.q*mult*10)/10} ${f.u} · ${Math.round(f.p*mult)} g prot · ${Math.round(f.k*mult)} kcal</small></div>
       <div class="fqty">
         <button onclick="qty('${fcat}',${i},-1)">−</button>
         <span>×${mult}</span>
         <button onclick="qty('${fcat}',${i},1)">+</button>
-      </div></div>`;
-  }).join('');
+      </div>
+      ${(f.mine||fcat==='mine')?`<button class="fqty" style="width:26px;color:var(--dim)" onclick="removeMine('${f.n.replace(/'/g,"\\'")}')">✕</button>`:''}
+      </div>`;
+  }).join(''):`<div class="empty" style="padding:26px">Aucun aliment enregistré ici.</div>`;
   renderBasket();
 }
+function catItems(cat){return cat==='mine'?myFoods():(CATS||allCats())[cat].items}
+function removeMine(n){delMyFood(n);basket=basket.filter(b=>b.n!==n);buildComposer();toast('Aliment supprimé')}
 function tog(cat,i){
-  const key=cat+'|'+i,f=FOODS[cat].items[i],x=basket.findIndex(b=>b.key===key);
+  const key=cat+'|'+i,f=catItems(cat)[i],x=basket.findIndex(b=>b.key===key);
   if(x>=0)basket.splice(x,1);
-  else basket.push({key,n:f.n,u:f.u,q:f.q,p:f.p,k:f.k,m:1});
+  else basket.push({key,n:f.n,u:f.u,q:f.q,p:f.p,k:f.k,m:1,cat:f.cat||cat});
   if(navigator.vibrate)navigator.vibrate(12);
   buildComposer();
 }
 function qty(cat,i,d){
-  const key=cat+'|'+i,f=FOODS[cat].items[i];
+  const key=cat+'|'+i,f=catItems(cat)[i];
   let b=basket.find(x=>x.key===key);
-  if(!b){b={key,n:f.n,u:f.u,q:f.q,p:f.p,k:f.k,m:1};basket.push(b)}
+  if(!b){b={key,n:f.n,u:f.u,q:f.q,p:f.p,k:f.k,m:1,cat:f.cat||cat};basket.push(b)}
   b.m=Math.max(.5,Math.round((b.m+d*.5)*10)/10);
   buildComposer();
 }
@@ -1921,9 +2008,17 @@ function guessFood(){
   let hit=null;
   for(const [re,v] of GUESS){if(re.test(t)){hit=v;break}}
   if(!hit)hit={p:20,k:400};
-  basket.push({key:'other|'+Date.now(),n:t,u:'portion',q:1,p:hit.p,k:hit.k,m:1});
-  $('f-other').value='';buildComposer();
-  toast('≈ '+hit.p+' g prot · '+hit.k+' kcal — corrige si besoin');
+  addNewFood(t,hit.p,hit.k,'portion',1);
+  $('f-other').value='';
+  toast('≈ '+hit.p+' g prot · '+hit.k+' kcal — enregistré');
+}
+/* Ajoute au repas ET à la base personnelle, pour le retrouver ensuite */
+function addNewFood(n,p,k,u,q,cat){
+  const f={n,u:u||'portion',q:q||1,p:Math.round(p),k:Math.round(k),cat:cat||'prot'};
+  const isNew=saveMyFood(f);
+  basket.push({key:'mine|'+n,...f,m:1});
+  buildComposer();
+  return isNew;
 }
 function parsePaste(){
   const t=$('f-paste').value;
@@ -1934,10 +2029,12 @@ function parsePaste(){
   const p=gp?Math.round(parseFloat(gp[2].replace(',','.'))):0;
   const k=gk?Math.round(parseFloat((gk[2]||gk[1]).replace(',','.'))):0;
   if(!p&&!k)return toast('Je n\'ai pas trouvé les valeurs');
-  const nm=(t.split('\n')[0]||'Repas analysé').slice(0,44);
-  basket.push({key:'paste|'+Date.now(),n:nm,u:'portion',q:1,p,k,m:1});
-  $('f-paste').value='';buildComposer();
-  toast('✓ '+p+' g prot · '+k+' kcal ajoutés');
+  let nm=(t.split('\n').find(l=>l.trim().length>2)||'Repas analysé').trim()
+    .replace(/^[-•*#\s]+/,'').replace(/[:：].*$/,'').slice(0,44);
+  if(!nm)nm='Repas analysé';
+  addNewFood(nm,p,k,'portion',1);
+  $('f-paste').value='';
+  toast('✓ '+nm+' enregistré — '+p+' g prot · '+k+' kcal');
 }
 
 /* ══════════════════════════════════════════
@@ -2015,15 +2112,15 @@ function swapSearch(){
   let html=hits.map(f=>{
     const n=swapQty(swapCtx.item,f);
     return `<div class="sug" onclick="doSwap('${f.n.replace(/'/g,"\\'")}')">
-      <div class="sn2"><b>${f.n}</b><small>${Math.round(n.p*n.m)} g prot · ${Math.round(n.k*n.m)} kcal</small></div>
+      <div class="sn2"><b>${f.mine?'⭐ ':''}${f.n}</b><small>${Math.round(n.p*n.m)} g prot · ${Math.round(n.k*n.m)} kcal</small></div>
       <div class="sq">${fmtQ(n)}</div></div>`;
   }).join('');
   if(!hits.length){
     const g=guessFoodItem(q.trim()),n=swapQty(swapCtx.item,g);
     html=`<div class="sug" onclick="doSwapFree()">
-      <div class="sn2"><b>${q.trim()}</b><small>Pas dans ma base — estimation : ${Math.round(n.p*n.m)} g prot · ${Math.round(n.k*n.m)} kcal</small></div>
+      <div class="sn2"><b>${q.trim()}</b><small>Nouveau — estimation : ${Math.round(n.p*n.m)} g prot · ${Math.round(n.k*n.m)} kcal</small></div>
       <div class="sq">${fmtQ(n)}</div></div>
-      <div class="tiny dim" style="padding:4px 4px 0;line-height:1.5">Estimation approximative. Tu peux ajuster ensuite dans le composeur.</div>`;
+      <div class="tiny dim" style="padding:4px 4px 0;line-height:1.5">Il sera ajouté à tes aliments et proposé les prochaines fois.</div>`;
   }
   el.innerHTML=html;
 }
@@ -2033,7 +2130,9 @@ function doSwap(name){
   applySwap(swapQty(swapCtx.item,f));
 }
 function doSwapFree(){
-  const g=guessFoodItem($('swap-q').value.trim());
+  const t=$('swap-q').value.trim();
+  const g=guessFoodItem(t);
+  saveMyFood({n:g.n,u:g.u,q:g.q,p:g.p,k:g.k,cat:swapCtx.item.cat||'prot'});
   applySwap(swapQty(swapCtx.item,g));
 }
 function applySwap(newItem){
@@ -2343,7 +2442,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='6';
+  const V='7';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2351,7 +2450,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=6').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=7').catch(()=>{});
 }
 </script>
 </body>
