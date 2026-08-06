@@ -299,6 +299,9 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .pics{display:flex;gap:9px;margin-bottom:14px}
 .pic{flex:1;position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3}
 .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic .pchg{position:absolute;right:7px;top:7px;width:28px;height:28px;border-radius:50%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;font-size:13px}
+.pic.mine{border:1.5px solid var(--cool1)}
 .pic span{position:absolute;left:8px;bottom:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:1.4px;
   background:rgba(0,0,0,.72);padding:4px 8px;border-radius:999px;color:#fff}
 .mv{width:76px;height:76px;flex-shrink:0;border-radius:20px;background:rgba(255,255,255,.05);
@@ -741,6 +744,7 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
         <div class="rowb" style="padding:6px 0 14px"><span class="tiny">Supabase</span><span class="mono tiny" id="sb">—</span></div>
         <button class="btn btn-g" onclick="testSb()" style="margin-bottom:11px">Tester la connexion</button>
         <button class="btn btn-g" onclick="expData()" style="margin-bottom:11px">Exporter mes données</button>
+        <button class="btn btn-g" onclick="clearMyPics()" style="margin-bottom:11px">Effacer mes photos d'exercices</button>
         <button class="btn" style="background:rgba(232,54,95,.14);border:1px solid rgba(232,54,95,.3);color:#FF7A94" onclick="wipe()">Tout effacer</button>
       </div>
       <div style="height:6px"></div>
@@ -910,10 +914,10 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=7"></script>
-<script src="exercises.js?v=7"></script>
-<script src="pics.js?v=7"></script>
-<script src="plan.js?v=7"></script>
+<script src="data.js?v=8"></script>
+<script src="exercises.js?v=8"></script>
+<script src="pics.js?v=8"></script>
+<script src="plan.js?v=8"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -1146,11 +1150,20 @@ function sport(){
       </div>
       <div class="ex-b"><div class="ex-in">
 
-        ${(()=>{const p=exPics(e.n);
-          return p?`<div class="pics">
-            <div class="pic"><img src="ex/${p[0]}" alt="" loading="lazy"/><span>DÉPART</span></div>
-            <div class="pic"><img src="ex/${p[1]}" alt="" loading="lazy"/><span>ARRIVÉE</span></div>
-          </div>`:'';})()}
+        ${(()=>{
+          const nm=e.n.replace(/'/g,"\\'");
+          const own=myPics(e.n), p=exPics(e.n);
+          const src=j=>own&&own[j]?own[j]:(p?'ex/'+p[j]:null);
+          if(!src(0)&&!src(1))return `<div class="pics">
+            <div class="pic" style="display:flex;align-items:center;justify-content:center" onclick="pickPic('${nm}',0)">
+              <span style="position:static;background:none">📷 AJOUTER UNE PHOTO</span></div></div>`;
+          return `<div class="pics">
+            ${[0,1].map(j=>src(j)?`<div class="pic ${own&&own[j]?'mine':''}">
+              <img src="${src(j)}" alt="" loading="lazy"/>
+              <span>${j?'ARRIVÉE':'DÉPART'}</span>
+              <div class="pchg" onclick="pickPic('${nm}',${j})">✎</div>
+            </div>`:'').join('')}
+          </div>`;})()}
         <div style="display:flex;gap:14px;margin-bottom:14px">
           ${exPics(e.n)?'':`<div class="mv"><svg viewBox="0 0 68 100">${MOVE[info.pat]||MOVE.core}</svg></div>`}
           <div style="flex:1;min-width:0">
@@ -1258,6 +1271,37 @@ function allSets(key,n,v){
   toast(v?'✓ Exercice validé':'Séries remises à zéro');
   refreshSport();home();score();
 }
+
+/* ══════ PHOTOS PERSONNELLES ══════ */
+function myPics(n){try{return (JSON.parse(localStorage.getItem('za_mypics'))||{})[n]||null}catch{return null}}
+function pickPic(name,slot){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';
+  inp.onchange=()=>{
+    const f=inp.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement('canvas');
+        const sc=Math.min(1,480/Math.max(img.width,img.height));
+        c.width=img.width*sc;c.height=img.height*sc;
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        let all={};try{all=JSON.parse(localStorage.getItem('za_mypics'))||{}}catch{}
+        const cur=all[name]||[null,null];
+        cur[slot]=c.toDataURL('image/jpeg',.72);
+        all[name]=cur;
+        try{localStorage.setItem('za_mypics',JSON.stringify(all));toast('✓ Photo enregistrée')}
+        catch{toast('Mémoire pleine — supprime quelques photos')}
+        refreshSport();
+      };
+      img.src=r.result;
+    };
+    r.readAsDataURL(f);
+  };
+  inp.click();
+}
+function clearMyPics(){localStorage.removeItem('za_mypics');refreshSport();toast('Photos personnelles effacées')}
 
 /* ══════ MINUTEUR DE REPOS ══════ */
 let tSec=0,tInt=null;
@@ -2442,7 +2486,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='7';
+  const V='8';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2450,7 +2494,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=7').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=8').catch(()=>{});
 }
 </script>
 </body>
