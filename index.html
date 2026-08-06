@@ -794,7 +794,11 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
     <div class="fg"><label class="fl">HANCHES (CM)</label><input class="fi" id="h-hanches" inputmode="decimal" placeholder="99"/></div>
     <div class="fg"><label class="fl">COU (CM)</label><input class="fi" id="h-cou" inputmode="decimal" placeholder="40"/></div>
   </div>
-  <div class="note i" style="margin:0 0 16px">Le tour de taille et le tour de cou servent à estimer ta masse grasse, ton muscle et ton eau corporelle. Prends-les au même endroit à chaque fois.</div>
+  <div class="duo">
+    <div class="fg"><label class="fl">MOLLET (CM)</label><input class="fi" id="h-mollet" inputmode="decimal" placeholder="39"/></div>
+    <div class="fg"><label class="fl">AVANT-BRAS (CM)</label><input class="fi" id="h-avantbras" inputmode="decimal" placeholder="29"/></div>
+  </div>
+  <div class="note i" style="margin:0 0 16px">Toutes ces mesures entrent dans le calcul de ta masse grasse et de ton muscle : taille et cou pour la méthode US Navy, hanches, cuisse, mollet et avant-bras pour la méthode Bailey, bras, cuisse et mollet pour ta masse musculaire. Prends-les toujours au même endroit.</div>
   <div class="fg"><label class="fl">TENSION (OPTIONNEL)</label>
     <div class="duo"><input class="fi" id="h-sys" inputmode="numeric" placeholder="Systolique 130"/><input class="fi" id="h-dia" inputmode="numeric" placeholder="Diastolique 85"/></div></div>
   <div class="fg"><label class="fl">PHOTOS FACE · PROFIL · DOS</label>
@@ -914,10 +918,10 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=8"></script>
-<script src="exercises.js?v=8"></script>
-<script src="pics.js?v=8"></script>
-<script src="plan.js?v=8"></script>
+<script src="data.js?v=9"></script>
+<script src="exercises.js?v=9"></script>
+<script src="pics.js?v=9"></script>
+<script src="plan.js?v=9"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -1473,7 +1477,9 @@ function poids(){
     ['Poitrine','poitrine','🫁','Suit le volume du haut du corps pendant la perte de poids.'],
     ['Bras droit','bras','💪','Bon indicateur : s\'il tient pendant que le poids baisse, tu gardes ton muscle.'],
     ['Cuisse','cuisse','🦵','Même logique que le bras, pour le bas du corps.'],
-    ['Hanches','hanches','🔻','Complète le tour de taille pour suivre la répartition.']];
+    ['Hanches','hanches','🔻','Complète le tour de taille et entre dans la méthode Bailey.'],
+    ['Mollet','mollet','🦶','Le mollet varie peu avec la graisse : il sert de référence stable dans les calculs.'],
+    ['Avant-bras','avantbras','🤚','Autre repère peu graisseux. Il complète la méthode Bailey.']];
   $('c-mensu').innerHTML=lw?M.map((m,i)=>`
     <div style="padding:12px 0;${i<M.length-1?'border-bottom:1px solid var(--line)':''}">
       <div class="rowb">
@@ -1534,8 +1540,8 @@ function renderComp(lw,kg){
   const el=$('c-comp');if(!el)return;
   if(!lw||!lw.taille||!lw.cou){
     el.innerHTML=`<div class="empty" style="padding:24px"><div>🧬</div>
-      Renseigne ton <b>tour de taille</b> et ton <b>tour de cou</b><br/>lors du bilan du dimanche.<br/>
-      <span class="tiny">Ces deux mesures suffisent à estimer ta masse grasse.</span></div>`;
+      Fais ton bilan du dimanche pour voir<br/>ta masse grasse, ton muscle et ton eau.<br/>
+      <span class="tiny">Plus tu renseignes de mesures, plus le calcul se précise.</span></div>`;
     return;
   }
   const c=bodyComp(kg||lw.kg,lw,S.profile);
@@ -1559,6 +1565,22 @@ function renderComp(lw,kg){
     <div class="rowb" style="margin-top:13px;padding-top:13px;border-top:1px solid var(--line)">
       <span class="tiny dim">Masse maigre totale</span>
       <span class="mono" style="font-size:15px;font-weight:700;color:var(--cool1)">${c.leanKg} kg</span></div>
+    ${c.range?`<div class="rowb" style="padding-top:9px">
+      <span class="tiny dim">Fourchette pour le muscle</span>
+      <span class="mono tiny">${c.range[0]} – ${c.range[1]} kg</span></div>`:''}
+
+    <div style="margin-top:16px;padding-top:15px;border-top:1px solid var(--line)">
+      <div class="mono tiny dim" style="letter-spacing:2px;margin-bottom:11px">LES ${c.methods.length} MÉTHODES CROISÉES</div>
+      ${c.methods.map(m=>`<div style="padding:9px 0;${'border-bottom:1px solid var(--line)'}">
+        <div class="rowb"><span style="font-size:12.5px;font-weight:600">${m.n}</span>
+          <span class="mono" style="font-size:13.5px;font-weight:700">${m.v} %</span></div>
+        <div class="mens-why">à partir de : ${m.s}</div></div>`).join('')}
+      <div class="tiny dim" style="margin-top:11px;line-height:1.5">
+        ${c.spread>6
+          ? `Les méthodes s'écartent de ${c.spread} points. Vérifie tes mesures — une erreur d'un centimètre change beaucoup le résultat.`
+          : `Écart entre méthodes : ${c.spread} point${c.spread>1?'s':''}. C'est cohérent, le chiffre retenu est fiable.`}
+      </div>
+    </div>
     ${(()=>{
       if(S.weekly.length<2)return '';
       const prev=S.weekly[S.weekly.length-2];
@@ -1576,7 +1598,7 @@ function renderComp(lw,kg){
       </div>`;
     })()}
     <div class="note i" style="margin:15px 0 0">
-      <b>Comment c'est calculé.</b> La masse grasse vient de la méthode US Navy : tour de taille moins tour de cou, rapporté à ta taille. L'eau corporelle vient de la formule de Watson. Ces estimations valent surtout par leur <b>évolution</b> : ce qui compte, c'est que le chiffre baisse pendant que ta masse maigre tient.
+      <b>Comment c'est calculé.</b> Ta masse grasse est la moyenne pondérée de trois méthodes qui utilisent chacune des mesures différentes — US Navy compte double, Deurenberg compte le moins car il surestime chez les gens qui s'entraînent. Ton muscle vient de la formule de Lee (bras, cuisse, mollet), croisée avec ta masse maigre. L'eau vient de la formule de Watson. Ces estimations valent surtout par leur <b>évolution</b> : ce qui compte, c'est que la graisse baisse pendant que le muscle tient.
     </div>
     <div class="note w" style="margin:11px 0 0">
       Pour un chiffre exact, il faut un DEXA en clinique. Une balance à impédance donne un résultat proche de cette estimation — ni plus, ni moins fiable.
@@ -1772,13 +1794,14 @@ function saveHebdo(){
     const e={d:dk(),kg:v,
       taille:$('h-taille').value,poitrine:$('h-poitrine').value,bras:$('h-bras').value,
       cuisse:$('h-cuisse').value,hanches:$('h-hanches').value,cou:$('h-cou').value,
+      mollet:$('h-mollet').value,avantbras:$('h-avantbras').value,
       sys:$('h-sys').value,dia:$('h-dia').value,note:$('h-note').value,photos};
     S.weekly.push(e);LS.set('weekly',S.weekly);
     // le poids officiel compte aussi comme pesée du jour
     const i=S.weights.findIndex(w=>w.d===e.d);
     if(i>=0)S.weights[i].kg=v;else S.weights.push({d:e.d,kg:v,energie:0});
     S.weights.sort((a,b)=>a.d.localeCompare(b.d));LS.set('weights',S.weights);
-    ['h-poids','h-taille','h-poitrine','h-bras','h-cuisse','h-hanches','h-cou','h-sys','h-dia','h-note'].forEach(x=>$(x).value='');
+    ['h-poids','h-taille','h-poitrine','h-bras','h-cuisse','h-hanches','h-cou','h-mollet','h-avantbras','h-sys','h-dia','h-note'].forEach(x=>$(x).value='');
     $('h-photos').value='';
     shHide('sh-hebdo');toast('✓ Bilan de la semaine enregistré');
     wMode='week';wtab('week');renderAll();sync('weekly',{...e,photos:photos.length});
@@ -2486,7 +2509,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='8';
+  const V='9';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2494,7 +2517,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=8').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=9').catch(()=>{});
 }
 </script>
 </body>

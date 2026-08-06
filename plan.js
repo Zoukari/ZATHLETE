@@ -251,15 +251,53 @@ function guessFoodItem(txt){
    À partir des mensurations déjà saisies.
    ═══════════════════════════════════════════ */
 
-/* Masse grasse — méthode US Navy (homme).
-   Nécessite tour de taille, tour de cou et hauteur, en cm. */
-function bodyFatNavy(taille, cou, hauteur){
+/* ─── MASSE GRASSE : trois méthodes croisées ───
+   Chaque mensuration nourrit au moins un calcul.        */
+
+/* 1. US Navy — tour de taille, tour de cou, hauteur */
+function bfNavy(taille, cou, hauteur){
   if(!taille || !cou || !hauteur) return null;
   const diff = taille - cou;
   if(diff <= 0) return null;
   const bf = 495 / (1.0324 - 0.19077*Math.log10(diff) + 0.15456*Math.log10(hauteur)) - 450;
-  if(!isFinite(bf) || bf < 3 || bf > 60) return null;
-  return Math.round(bf * 10) / 10;
+  return (isFinite(bf) && bf > 3 && bf < 60) ? Math.round(bf*10)/10 : null;
+}
+
+/* 2. Covert Bailey — hanches, cuisse, mollet, avant-bras (en pouces) */
+function bfBailey(hanches, cuisse, mollet, avantbras, age){
+  if(!hanches || !cuisse || !mollet || !avantbras) return null;
+  const I = c => c / 2.54;
+  const bf = (age >= 30)
+    ? I(hanches) + I(cuisse) - 2*I(mollet) - I(avantbras)
+    : I(hanches) + 0.8*I(cuisse) - 2*I(mollet) - I(avantbras);
+  return (isFinite(bf) && bf > 3 && bf < 60) ? Math.round(bf*10)/10 : null;
+}
+
+/* 3. Deurenberg — indice de masse corporelle et âge */
+function bfDeurenberg(kg, hauteur, age){
+  if(!kg || !hauteur) return null;
+  const imc = kg / Math.pow(hauteur/100, 2);
+  const bf = 1.20*imc + 0.23*(age||35) - 16.2;
+  return (isFinite(bf) && bf > 3 && bf < 60) ? Math.round(bf*10)/10 : null;
+}
+
+/* Consensus pondéré. US Navy pèse le plus, Deurenberg le moins :
+   il surestime chez les personnes qui s'entraînent.        */
+function bfConsensus(kg, m, cm, age){
+  const navy = bfNavy(+m.taille, +m.cou, cm);
+  const bail = bfBailey(+m.hanches, +m.cuisse, +m.mollet, +m.avantbras, age);
+  const deur = bfDeurenberg(kg, cm, age);
+  const parts = [];
+  if(navy !== null) parts.push({n:'US Navy',        v:navy, w:5, s:'taille · cou'});
+  if(bail !== null) parts.push({n:'Covert Bailey',  v:bail, w:3, s:'hanches · cuisse · mollet · avant-bras'});
+  if(deur !== null) parts.push({n:'Deurenberg',     v:deur, w:2, s:'poids · taille · âge'});
+  if(!parts.length) return null;
+  const tw = parts.reduce((a,b)=>a+b.w, 0);
+  const bf = Math.round(parts.reduce((a,b)=>a+b.v*b.w, 0) / tw * 10) / 10;
+  const spread = parts.length > 1
+    ? Math.round((Math.max(...parts.map(x=>x.v)) - Math.min(...parts.map(x=>x.v)))*10)/10
+    : 0;
+  return {bf, parts, spread};
 }
 
 /* Eau corporelle totale — formule de Watson (homme), en litres. */
@@ -269,25 +307,40 @@ function totalBodyWater(kg, hauteur, age){
   return Math.round(tbw * 10) / 10;
 }
 
-/* Composition complète.
-   La masse osseuse reste une approximation large :
-   on l'annonce comme telle dans l'interface.        */
+/* Muscle squelettique — formule de Lee, à partir des circonférences
+   de bras, cuisse et mollet. Sans plis cutanés elle surestime :
+   on la croise avec la masse maigre pour donner une fourchette. */
+function muscleLee(hauteur, bras, cuisse, mollet, age){
+  if(!bras || !cuisse || !mollet) return null;
+  const h = hauteur/100;
+  const sm = h*(0.00744*bras*bras + 0.00088*cuisse*cuisse + 0.00441*mollet*mollet)
+             + 2.4 - 0.048*(age||35) + 7.8;
+  return (isFinite(sm) && sm > 10 && sm < 70) ? Math.round(sm*10)/10 : null;
+}
+
+/* Composition complète */
 function bodyComp(kg, mensu, profile){
   const cm  = (profile && profile.cm)  || 171;
   const age = (profile && profile.age) || 35;
-  const bf  = bodyFatNavy(+mensu.taille, +mensu.cou, cm);
-  if(bf === null || !kg) return null;
+  const con = bfConsensus(kg, mensu, cm, age);
+  if(!con || !kg) return null;
+  const bf = con.bf;
 
   const fatKg  = Math.round(kg * bf / 100 * 10) / 10;
   const leanKg = Math.round((kg - fatKg) * 10) / 10;
   const water  = totalBodyWater(kg, cm, age);
-  // Masse osseuse minérale : environ 4,5 % du poids chez l'homme adulte
   const bone   = Math.round(kg * 0.045 * 10) / 10;
-  // Muscle squelettique : environ 53 % de la masse maigre
-  const muscle = Math.round(leanKg * 0.53 * 10) / 10;
 
-  return {bf, fatKg, leanKg, water, bone, muscle,
-          waterPct: water ? Math.round(water / kg * 1000) / 10 : null};
+  const lee  = muscleLee(cm, +mensu.bras, +mensu.cuisse, +mensu.mollet, age);
+  const base = Math.round(leanKg * 0.53 * 10) / 10;
+  const muscle = lee !== null ? Math.round((lee + base)/2 * 10)/10 : base;
+  const range  = lee !== null
+    ? [Math.min(lee, base), Math.max(lee, base)].map(x => Math.round(x*10)/10)
+    : null;
+
+  return {bf, fatKg, leanKg, water, bone, muscle, range,
+          methods: con.parts, spread: con.spread, lee,
+          waterPct: water ? Math.round(water/kg*1000)/10 : null};
 }
 
 /* ─── Indices tirés des mensurations ───
@@ -326,10 +379,17 @@ function bodyIndices(m, hauteur, kg){
       d:'Ce total doit rester stable ou monter pendant que ton poids baisse. S\'il chute, tu perds du muscle.'});
   }
 
+  // Mollet : entre dans le calcul du muscle et dans Bailey
+  if(m.mollet){
+    const r = +m.mollet / (+m.cuisse || 1);
+    out.push({k:'Mollet ÷ cuisse', v:r.toFixed(2), s:'Équilibre', t:'i',
+      d:'Le mollet bouge peu avec la graisse : c\'est pour ça qu\'il sert de référence dans le calcul de ta masse grasse.'});
+  }
+
   // Cou : entre dans le calcul de la masse grasse
   if(m.cou){
     out.push({k:'Tour de cou', v:m.cou+' cm', s:'Calcul', t:'i',
-      d:'Combiné au tour de taille, il donne ton pourcentage de masse grasse par la méthode US Navy.'});
+      d:'Combiné au tour de taille, il donne ta masse grasse par la méthode US Navy.'});
   }
 
   return out;
