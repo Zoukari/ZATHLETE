@@ -30,6 +30,8 @@
   --display:'Bricolage Grotesque',system-ui,sans-serif;
   --body:'Inter',system-ui,sans-serif;
   --mono:'JetBrains Mono',monospace;
+  --m-hot:#FF4D3D; --m-warm:rgba(255,138,76,.55); --m-off:rgba(255,255,255,.10);
+  --body-fill:rgba(255,255,255,.05); --body-line:rgba(255,255,255,.16);
   --safe-b:env(safe-area-inset-bottom,0px);
   --safe-t:env(safe-area-inset-top,0px);
 }
@@ -172,8 +174,9 @@ input,select,textarea{font-family:inherit}
 .ex-t small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px;letter-spacing:.6px}
 .ex-chev{color:var(--dim);font-size:15px;transition:.25s;flex-shrink:0}
 
-.ex-b{overflow:hidden;transition:max-height .35s cubic-bezier(.22,1,.36,1);max-height:600px}
-.ex.shut .ex-b{max-height:0}
+.ex-b{display:grid;grid-template-rows:1fr;transition:grid-template-rows .35s cubic-bezier(.22,1,.36,1)}
+.ex-b>div{overflow:hidden;min-height:0}
+.ex.shut .ex-b{grid-template-rows:0fr}
 .ex.shut .ex-chev{transform:rotate(180deg)}
 .ex-in{padding:2px 16px 16px}
 .sets{display:flex;gap:8px;margin-bottom:13px;flex-wrap:wrap}
@@ -302,12 +305,36 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .pic .pchg{position:absolute;right:7px;top:7px;width:28px;height:28px;border-radius:50%;
   background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;font-size:13px}
 .pic.mine{border:1.5px solid var(--cool1)}
+.picadd{display:flex;align-items:center;justify-content:center;gap:8px;padding:18px;margin-bottom:13px;
+  border-radius:16px;border:1.5px dashed var(--line);color:var(--dim);font-size:12px;background:rgba(255,255,255,.02)}
+.picadd:active{border-color:var(--heat2);color:var(--heat1)}
 .pic span{position:absolute;left:8px;bottom:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:1.4px;
   background:rgba(0,0,0,.72);padding:4px 8px;border-radius:999px;color:#fff}
 .mv{width:76px;height:76px;flex-shrink:0;border-radius:20px;background:rgba(255,255,255,.05);
     border:1px solid var(--line);display:flex;align-items:center;justify-content:center}
 .mv svg{width:60px;height:60px;stroke:var(--heat1);fill:none;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
 .ex.done .mv svg{stroke:var(--cool1)}
+.bodywrap{display:flex;gap:6px;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:18px;padding:12px 8px;margin-bottom:13px}
+.bodycol{text-align:center;flex:1}
+.bmap{width:100%;max-width:96px;height:auto;display:block;margin:0 auto}
+.bodycol em{display:block;font-family:var(--mono);font-size:8px;letter-spacing:1.6px;color:var(--dim);font-style:normal;margin-top:5px}
+.mleg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
+.mleg .d{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:-1px}
+.altbtns{display:flex;gap:8px;margin-bottom:12px}
+.altbtns button{flex:1;padding:11px 8px;border-radius:999px;background:var(--surf2);border:1px solid var(--line);
+  font-size:11px;font-weight:600;color:var(--txt);line-height:1.25}
+.altbtns button:active{background:rgba(255,138,76,.16)}
+.swapped{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:14px;
+  background:rgba(0,229,176,.09);border:1px solid rgba(0,229,176,.22);margin-bottom:12px;font-size:11.5px;color:var(--cool1)}
+.swapped button{margin-left:auto;font-size:11px;color:var(--dim);text-decoration:underline;flex-shrink:0}
+.altopt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:var(--surf2);margin-bottom:10px}
+.altopt:active{background:rgba(255,138,76,.15)}
+.altopt .ai{width:34px;height:34px;border-radius:50%;background:rgba(255,138,76,.16);display:flex;
+  align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--heat1);flex-shrink:0}
+.altopt .an{flex:1;min-width:0}
+.altopt .an b{display:block;font-size:13.5px;font-weight:600}
+.altopt .an small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px}
 .exec{padding-left:17px;position:relative;font-size:12px;line-height:1.55;color:var(--dim);margin-bottom:7px}
 .exec::before{content:'';position:absolute;left:0;top:7px;width:6px;height:6px;border-radius:50%;background:var(--heat2)}
 .warn-line{font-size:11.5px;line-height:1.5;color:var(--heat1);background:rgba(255,138,76,.08);
@@ -871,6 +898,14 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
   <button class="btn btn-g" style="margin-top:10px" onclick="shHide('sh-tension')">Annuler</button>
 </div></div>
 
+<div class="sh-bg" id="sh-alt" onclick="shClose(event,'sh-alt')"><div class="sh">
+  <div class="sh-grip"></div>
+  <div class="sh-t" id="alt-t">Autre exercice</div>
+  <div class="sh-s" id="alt-s"></div>
+  <div id="alt-list"></div>
+  <button class="btn btn-g" style="margin-top:8px" onclick="shHide('sh-alt')">Annuler</button>
+</div></div>
+
 <div class="sh-bg" id="sh-food" onclick="shClose(event,'sh-food')"><div class="sh">
   <div class="sh-grip"></div>
   <div class="sh-t">Créer un aliment</div>
@@ -918,10 +953,12 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=9"></script>
-<script src="exercises.js?v=9"></script>
-<script src="pics.js?v=9"></script>
-<script src="plan.js?v=9"></script>
+<script src="data.js?v=10"></script>
+<script src="exercises.js?v=10"></script>
+<script src="pics.js?v=10"></script>
+<script src="anatomy.js?v=10"></script>
+<script src="alts.js?v=10"></script>
+<script src="plan.js?v=10"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -945,7 +982,8 @@ let S={
   sleep:LS.get('sleep',[]),
   tension:LS.get('tension',[]),
   fast:LS.get('fast',{}),
-  subs:LS.get('subs',{})
+  subs:LS.get('subs',{}),
+  alts:LS.get('alts',{})
 };
 
 /* ══════ PROGRAMME ══════ */
@@ -1141,9 +1179,13 @@ function sport(){
   ${!isToday?'<div class="note w" style="margin:0 0 13px">Séance de '+w.n.toLowerCase()+' — consultation. Le suivi se fait le jour même.</div>':''}
   <div class="exs">`;
 
-  ex.forEach((e,i)=>{
+  ex.forEach((e0,i)=>{
+    const key0=setKey(w.t,i,viewDay);
+    const sw=getAlt(key0);
+    const e=sw?{...e0,...sw}:e0;
+    const nm=e0.n.replace(/'/g,"\\'");
     const info=exInfo(e.n);
-    const key=setKey(w.t,i,viewDay), sets=getSets(key,e);
+    const key=key0, sets=getSets(key,e);
     const allDone=sets.every(s=>s.d);
     const last=lastWeek(w.t,i,viewDay);
     h+=`<div class="ex ${allDone?'done':''}" id="ex${i}">
@@ -1158,9 +1200,8 @@ function sport(){
           const nm=e.n.replace(/'/g,"\\'");
           const own=myPics(e.n), p=exPics(e.n);
           const src=j=>own&&own[j]?own[j]:(p?'ex/'+p[j]:null);
-          if(!src(0)&&!src(1))return `<div class="pics">
-            <div class="pic" style="display:flex;align-items:center;justify-content:center" onclick="pickPic('${nm}',0)">
-              <span style="position:static;background:none">📷 AJOUTER UNE PHOTO</span></div></div>`;
+          if(!src(0)&&!src(1))return `<div class="picadd" onclick="pickPic('${nm}',0)">
+              📷 Ajouter une photo de ce mouvement</div>`;
           return `<div class="pics">
             ${[0,1].map(j=>src(j)?`<div class="pic ${own&&own[j]?'mine':''}">
               <img src="${src(j)}" alt="" loading="lazy"/>
@@ -1168,14 +1209,29 @@ function sport(){
               <div class="pchg" onclick="pickPic('${nm}',${j})">✎</div>
             </div>`:'').join('')}
           </div>`;})()}
-        <div style="display:flex;gap:14px;margin-bottom:14px">
-          ${exPics(e.n)?'':`<div class="mv"><svg viewBox="0 0 68 100">${MOVE[info.pat]||MOVE.core}</svg></div>`}
-          <div style="flex:1;min-width:0">
-            <div class="mono tiny dim" style="letter-spacing:1.6px;margin-bottom:6px">MUSCLES CIBLÉS</div>
-            <div style="font-size:12.5px;line-height:1.45;margin-bottom:9px">${info.mus}</div>
-            <span class="pill">⏱ ${info.rest?info.rest+' s de repos':'enchaîné'}</span>
-          </div>
+        ${sw?`<div class="swapped">
+          <span style="flex:1;min-width:0;line-height:1.4">🔁 Remplace <b>${sw.orig}</b></span>
+          <button onclick="undoAlt('${key}')">rétablir</button></div>`:''}
+
+        <div class="altbtns">
+          <button onclick="openAlt('${key}','${nm}','nomachine')">🏋️ Sans machine</button>
+          <button onclick="openAlt('${key}','${nm}','travel')">✈️ Mode voyage</button>
         </div>
+
+        ${(()=>{const bm=bodyMap(e.n);
+          if(!bm)return `<div style="margin-bottom:13px">
+            <div class="mono tiny dim" style="letter-spacing:1.6px;margin-bottom:6px">MUSCLES CIBLÉS</div>
+            <div style="font-size:12.5px;line-height:1.45">${info.mus}</div></div>`;
+          return `<div class="bodywrap">
+            <div class="bodycol">${bm.front}<em>FACE</em></div>
+            <div class="bodycol">${bm.back}<em>DOS</em></div>
+          </div>
+          <div class="mleg">
+            ${bm.primary.map(x=>`<span class="pill heat"><span class="d" style="background:var(--m-hot)"></span>${x}</span>`).join('')}
+            ${bm.secondary.map(x=>`<span class="pill"><span class="d" style="background:var(--m-warm)"></span>${x}</span>`).join('')}
+          </div>`;})()}
+
+        <div style="margin-bottom:13px"><span class="pill">⏱ ${info.rest?info.rest+' s de repos':'enchaîné'}</span></div>
 
         ${last?`<div class="cmp">📈 La semaine dernière : <b>${last}</b></div>`:''}
 
@@ -1222,6 +1278,7 @@ function getSets(key,e){
 }
 function putSets(key,a){S.sets[key]=a;LS.set('sets',S.sets)}
 function curEx(key){
+  const a=getAlt(key);if(a)return a;
   const [,t,i]=key.split('|');
   return (EX[t]||[])[+i]||{s:4,r:'8',kg:0};
 }
@@ -1258,7 +1315,10 @@ function setKey(t,i,d){
 function exProg(t,d){
   const ex=EX[t]||[],day=d===undefined?new Date().getDay():d;
   let total=0,done=0;
-  ex.forEach((e,i)=>{total+=e.s;getSets(setKey(t,i,day),e).forEach(s=>{if(s.d)done++})});
+  ex.forEach((e0,i)=>{
+    const k=setKey(t,i,day),a=getAlt(k),e=a?{...e0,...a}:e0;
+    total+=e.s;getSets(k,e).forEach(s=>{if(s.d)done++});
+  });
   return{done,total,pct:total?Math.round(done/total*100):0};
 }
 function toggleEx(i){$('ex'+i).classList.toggle('shut')}
@@ -1274,6 +1334,38 @@ function allSets(key,n,v){
   a.forEach(s=>s.d=v);putSets(key,a);
   toast(v?'✓ Exercice validé':'Séries remises à zéro');
   refreshSport();home();score();
+}
+
+/* ══════ VARIANTES D'EXERCICE ══════ */
+function getAlt(key){return S.alts[key]||null}
+let altCtx=null;
+function openAlt(key,name,mode){
+  altCtx={key,name,mode};
+  const list=altsFor(name,mode);
+  $('alt-t').textContent = mode==='travel' ? '✈️ Mode voyage' : '🏋️ Sans machine';
+  $('alt-s').innerHTML = mode==='travel'
+    ? `À la place de <b>${name}</b>, sans aucun matériel de salle. Choisis-en un.`
+    : `À la place de <b>${name}</b>, avec des haltères, un élastique ou ton poids de corps. Choisis-en un.`;
+  $('alt-list').innerHTML=list.map((a,i)=>`
+    <div class="altopt" onclick="chooseAlt(${i})">
+      <div class="ai">${i+1}</div>
+      <div class="an"><b>${a.n}</b><small>${a.s} × ${a.r}${a.kg?' · '+a.kg+' kg':''} · ${a.w}</small></div>
+      <span style="color:var(--heat1);font-size:16px">›</span>
+    </div>`).join('');
+  sheet('sh-alt');
+}
+function chooseAlt(i){
+  const a=altsFor(altCtx.name,altCtx.mode)[i];
+  S.alts[altCtx.key]={n:a.n,s:a.s,r:a.r,kg:a.kg,w:a.w,orig:altCtx.name};
+  LS.set('alts',S.alts);
+  delete S.sets[altCtx.key];LS.set('sets',S.sets);
+  shHide('sh-alt');toast('🔁 '+a.n);
+  refreshSport();home();score();
+}
+function undoAlt(key){
+  delete S.alts[key];LS.set('alts',S.alts);
+  delete S.sets[key];LS.set('sets',S.sets);
+  toast('Exercice rétabli');refreshSport();home();score();
 }
 
 /* ══════ PHOTOS PERSONNELLES ══════ */
@@ -2495,6 +2587,7 @@ function askReset(){
   S.sleep=S.sleep.filter(x=>x.d!==d);LS.set('sleep',S.sleep);
   delete S.fast[d];LS.set('fast',S.fast);
   delete S.subs[d];LS.set('subs',S.subs);
+  Object.keys(S.alts).forEach(k=>{if(k.startsWith(d+'|'))delete S.alts[k]});LS.set('alts',S.alts);
   renderAll();toast('↺ Journée réinitialisée');
 }
 
@@ -2509,7 +2602,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='9';
+  const V='10';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2517,7 +2610,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=9').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=10').catch(()=>{});
 }
 </script>
 </body>
