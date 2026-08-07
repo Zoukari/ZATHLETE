@@ -186,7 +186,8 @@ input,select,textarea{font-family:inherit}
 .set b{display:block;font-family:var(--mono);font-size:15px;font-weight:700;margin-top:3px}
 .set.hit b{color:var(--cool1)}
 .ex-note{font-size:11.5px;color:var(--dim);line-height:1.5;margin-bottom:12px}
-.ex-acts{display:flex;gap:8px}
+.ex-acts{display:flex;gap:7px;flex-wrap:wrap}
+.ex-acts button{min-width:0}
 .ex-acts button{flex:1;padding:11px;border-radius:999px;font-size:11.5px;font-weight:600}
 
 /* MEAL card */
@@ -328,6 +329,17 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .swapped{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:14px;
   background:rgba(0,229,176,.09);border:1px solid rgba(0,229,176,.22);margin-bottom:12px;font-size:11.5px;color:var(--cool1)}
 .swapped button{margin-left:auto;font-size:11px;color:var(--dim);text-decoration:underline;flex-shrink:0}
+.altcard{background:var(--surf2);border:1px solid var(--line);border-radius:22px;padding:14px;margin-bottom:13px}
+.altpics{display:flex;gap:8px;margin-bottom:12px}
+.altpics .pic{flex:1;aspect-ratio:4/3;border-radius:14px}
+.altmeta{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.altmeta .an{flex:1;min-width:0}
+.altmeta .an b{display:block;font-size:14.5px;font-weight:600;line-height:1.25}
+.altmeta .an small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:3px}
+.altmeta .ai{width:32px;height:32px;border-radius:50%;background:rgba(255,138,76,.16);display:flex;
+  align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--heat1);flex-shrink:0}
+.alttags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+.alttech{font-size:11.5px;line-height:1.5;color:var(--dim);margin-bottom:13px}
 .altopt{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:var(--surf2);margin-bottom:10px}
 .altopt:active{background:rgba(255,138,76,.15)}
 .altopt .ai{width:34px;height:34px;border-radius:50%;background:rgba(255,138,76,.16);display:flex;
@@ -953,12 +965,12 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=10"></script>
-<script src="exercises.js?v=10"></script>
-<script src="pics.js?v=10"></script>
-<script src="anatomy.js?v=10"></script>
-<script src="alts.js?v=10"></script>
-<script src="plan.js?v=10"></script>
+<script src="data.js?v=11"></script>
+<script src="exercises.js?v=11"></script>
+<script src="pics.js?v=11"></script>
+<script src="anatomy.js?v=11"></script>
+<script src="alts.js?v=11"></script>
+<script src="plan.js?v=11"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -1176,7 +1188,7 @@ function sport(){
     <div class="rowb tiny dim mono" style="margin-top:9px">
       <span>${ex.length} exercices</span><span>${prog.pct}% terminé</span></div>
   </div>
-  ${!isToday?'<div class="note w" style="margin:0 0 13px">Séance de '+w.n.toLowerCase()+' — consultation. Le suivi se fait le jour même.</div>':''}
+  ${isToday?sessionBar(prog):'<div class="note w" style="margin:0 0 13px">Séance de '+w.n.toLowerCase()+' — consultation. Le suivi se fait le jour même.</div>'}
   <div class="exs">`;
 
   ex.forEach((e0,i)=>{
@@ -1258,6 +1270,7 @@ function sport(){
 
         <div class="ex-acts">
           <button class="btn-g" style="border:1px solid var(--line)" onclick="allSets('${key}',${e.s},0)">Réinitialiser</button>
+          <button class="btn-g" style="border:1px solid rgba(0,229,176,.3);color:var(--cool1)" onclick="timerStart(${info.rest||90},'Repos — ${nm}')">⏱ Repos ${info.rest||90} s</button>
           <button class="btn-c" onclick="allSets('${key}',${e.s},1)">Tout valider</button>
         </div>
       </div></div>
@@ -1306,6 +1319,8 @@ function refreshSport(){
   sport();
   shut.forEach(id=>$(id)&&$(id).classList.add('shut'));
   $('view').scrollTop=top;
+  const s=sesGet();
+  if(s&&!s.done&&!sesInt)tickSession();
 }
 
 function setKey(t,i,d){
@@ -1336,6 +1351,69 @@ function allSets(key,n,v){
   refreshSport();home();score();
 }
 
+/* ══════ CHRONO DE SÉANCE ══════ */
+let sesInt=null;
+function sesKey(){return 'za_ses_'+dk()}
+function sesGet(){try{return JSON.parse(localStorage.getItem(sesKey()))}catch{return null}}
+function sesStart(){
+  localStorage.setItem(sesKey(),JSON.stringify({t0:Date.now(),done:null}));
+  toast('▶︎ Séance lancée — bon courage');
+  if(navigator.vibrate)navigator.vibrate(20);
+  tickSession();refreshSport();
+}
+function sesEnd(){
+  const s=sesGet();if(!s)return;
+  s.done=Date.now();localStorage.setItem(sesKey(),JSON.stringify(s));
+  clearInterval(sesInt);sesInt=null;
+  const mn=Math.round((s.done-s.t0)/60000);
+  toast('✓ Séance terminée en '+mn+' min');
+  timerStop();refreshSport();home();score();
+}
+function sesReset(){localStorage.removeItem(sesKey());clearInterval(sesInt);sesInt=null;refreshSport()}
+function sesElapsed(){
+  const s=sesGet();if(!s)return 0;
+  return Math.floor(((s.done||Date.now())-s.t0)/1000);
+}
+function fmtDur(sec){
+  const m=Math.floor(sec/60),x=sec%60;
+  return m+':'+String(x).padStart(2,'0');
+}
+function tickSession(){
+  clearInterval(sesInt);
+  sesInt=setInterval(()=>{
+    const el=$('ses-time');
+    const s=sesGet();
+    if(!el||!s||s.done){clearInterval(sesInt);sesInt=null;return}
+    el.textContent=fmtDur(sesElapsed());
+  },1000);
+}
+function sessionBar(prog){
+  const s=sesGet();
+  if(!s) return `<div class="card" style="margin:0 0 13px">
+      <button class="btn btn-p" onclick="sesStart()">▶︎ Lancer la séance</button>
+      <div class="tiny dim" style="margin-top:10px;text-align:center">Le chrono tourne et le repos se déclenche à chaque série validée.</div>
+    </div>`;
+  if(s.done) return `<div class="card" style="margin:0 0 13px;border-color:rgba(0,229,176,.3)">
+      <div class="rowb">
+        <div><div class="dsp" style="font-size:22px;color:var(--cool1)">✓ Séance terminée</div>
+          <div class="tiny dim" style="margin-top:4px">${fmtDur(Math.floor((s.done-s.t0)/1000))} · ${prog.done} séries sur ${prog.total}</div></div>
+        <button class="btn btn-g btn-sm" onclick="sesReset()">Relancer</button></div>
+    </div>`;
+  return `<div class="card" style="margin:0 0 13px;border-color:rgba(255,138,76,.35)">
+      <div class="rowb" style="margin-bottom:13px">
+        <div><div class="mono tiny dim" style="letter-spacing:2px">SÉANCE EN COURS</div>
+          <div class="dsp" style="font-size:34px;line-height:1;margin-top:4px" id="ses-time">${fmtDur(sesElapsed())}</div></div>
+        <div style="text-align:right"><div class="mono tiny dim" style="letter-spacing:2px">SÉRIES</div>
+          <div class="mono" style="font-size:20px;font-weight:700;margin-top:5px">${prog.done}<span class="dim" style="font-size:13px">/${prog.total}</span></div></div>
+      </div>
+      <div class="bar" style="margin-bottom:13px"><i class="fill-h" style="width:${prog.pct}%"></i></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-g" onclick="timerStart(90,'Repos')" style="flex:1">⏱ Repos 90 s</button>
+        <button class="btn btn-c" onclick="sesEnd()" style="flex:1">Terminer</button>
+      </div>
+    </div>`;
+}
+
 /* ══════ VARIANTES D'EXERCICE ══════ */
 function getAlt(key){return S.alts[key]||null}
 let altCtx=null;
@@ -1346,12 +1424,26 @@ function openAlt(key,name,mode){
   $('alt-s').innerHTML = mode==='travel'
     ? `À la place de <b>${name}</b>, sans aucun matériel de salle. Choisis-en un.`
     : `À la place de <b>${name}</b>, avec des haltères, un élastique ou ton poids de corps. Choisis-en un.`;
-  $('alt-list').innerHTML=list.map((a,i)=>`
-    <div class="altopt" onclick="chooseAlt(${i})">
-      <div class="ai">${i+1}</div>
-      <div class="an"><b>${a.n}</b><small>${a.s} × ${a.r}${a.kg?' · '+a.kg+' kg':''} · ${a.w}</small></div>
-      <span style="color:var(--heat1);font-size:16px">›</span>
-    </div>`).join('');
+  $('alt-list').innerHTML=list.map((a,i)=>{
+    const p=exPics(a.n), inf=exInfo(a.n), bm=bodyMap(a.n);
+    return `<div class="altcard">
+      ${p?`<div class="altpics">
+        <div class="pic"><img src="ex/${p[0]}" alt="" loading="lazy"/><span>DÉPART</span></div>
+        <div class="pic"><img src="ex/${p[1]}" alt="" loading="lazy"/><span>ARRIVÉE</span></div>
+      </div>`:''}
+      <div class="altmeta">
+        <div class="ai">${i+1}</div>
+        <div class="an"><b>${a.n}</b>
+          <small>${a.s} séries × ${a.r}${a.kg?' · '+a.kg+' kg':''}</small></div>
+      </div>
+      <div class="alttags">
+        <span class="pill heat">🎒 ${a.w}</span>
+        ${bm?bm.primary.map(x=>`<span class="pill">${x}</span>`).join(''):`<span class="pill">${inf.mus}</span>`}
+        <span class="pill">⏱ ${inf.rest} s</span>
+      </div>
+      <div class="alttech">${inf.exec[0]}</div>
+      <button class="btn btn-p" onclick="chooseAlt(${i})">Choisir cet exercice</button>
+    </div>`;}).join('');
   sheet('sh-alt');
 }
 function chooseAlt(i){
@@ -2602,7 +2694,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='10';
+  const V='11';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2610,7 +2702,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=10').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=11').catch(()=>{});
 }
 </script>
 </body>
