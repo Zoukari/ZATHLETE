@@ -399,6 +399,33 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .comp .cv{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
 .comp .ck{font-size:10px;color:var(--dim);margin-top:5px;line-height:1.3}
 .mens-why{font-size:10.5px;color:var(--dim);margin-top:3px;line-height:1.35}
+/* ─── mode guidé ─── */
+.guide{position:fixed;inset:0;z-index:700;background:var(--ink);display:none;
+  flex-direction:column;padding:calc(var(--safe-t) + 12px) 20px calc(20px + var(--safe-b))}
+.guide.on{display:flex;animation:fade .3s}
+.g-top{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.g-x{width:42px;height:42px;border-radius:50%;background:var(--surf);border:1px solid var(--line);
+  color:var(--dim);font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.g-ses{text-align:center}
+.g-ses span{font-family:var(--mono);font-size:17px;font-weight:700;display:block;line-height:1}
+.g-ses em{font-family:var(--mono);font-size:8px;letter-spacing:2.4px;color:var(--dim);font-style:normal}
+.g-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;overflow:hidden}
+.g-exname{font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.8px;text-align:center;line-height:1.15}
+.g-serie{font-family:var(--mono);font-size:10.5px;letter-spacing:3px;color:var(--dim);margin-bottom:4px}
+.g-pic{width:130px;height:98px;border-radius:16px;overflow:hidden;background:#000;flex-shrink:0;margin-bottom:6px}
+.g-pic img{width:100%;height:100%;object-fit:cover;display:block}
+.g-ring{position:relative;width:min(74vw,250px);aspect-ratio:1;display:flex;align-items:center;justify-content:center;flex-shrink:1}
+.g-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.g-ring circle{transition:stroke-dashoffset .28s linear}
+.g-center{position:absolute;text-align:center}
+.g-big{font-family:var(--display);font-size:66px;font-weight:800;letter-spacing:-3px;line-height:1}
+.g-big.beat{animation:beat .3s cubic-bezier(.34,1.6,.64,1)}
+@keyframes beat{0%{transform:scale(1)}45%{transform:scale(1.16)}100%{transform:scale(1)}}
+.g-sub{font-family:var(--mono);font-size:10px;letter-spacing:2.6px;color:var(--dim);margin-top:8px}
+.g-hint{font-size:12.5px;color:var(--dim);text-align:center;line-height:1.5;max-width:320px;margin-top:8px}
+.g-acts{display:flex;gap:9px;flex-shrink:0;flex-wrap:wrap}
+.g-acts button{flex:1;min-width:88px;padding:16px 10px;border-radius:999px;font-size:13px;font-weight:600}
+.g-rest .g-big{color:var(--cool1)}
 /* ═══ ÉCRAN LARGE : on centre l'app au lieu de tout étirer ═══ */
 @media (min-width:720px){
   body{background:#05070C}
@@ -956,21 +983,52 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
   <button class="btn btn-g" style="margin-top:8px" onclick="shHide('sh-swap')">Annuler</button>
 </div></div>
 
+<div class="guide" id="guide">
+  <div class="g-top">
+    <button class="g-x" onclick="guideQuit()">✕</button>
+    <div class="g-ses"><span id="g-ses">0:00</span><em>SÉANCE</em></div>
+    <button class="g-x" onclick="guideSkipEx()" title="Exercice suivant">⏭</button>
+  </div>
+
+  <div class="g-body">
+    <div class="g-exname" id="g-exname">—</div>
+    <div class="g-serie" id="g-serie">—</div>
+    <div class="g-pic" id="g-pic"></div>
+
+    <div class="g-ring">
+      <svg viewBox="0 0 220 220">
+        <circle cx="110" cy="110" r="96" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="12"/>
+        <circle cx="110" cy="110" r="96" fill="none" stroke="url(#hg2)" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="603" stroke-dashoffset="603" id="g-ring"/>
+      </svg>
+      <div class="g-center">
+        <div class="g-big" id="g-big">—</div>
+        <div class="g-sub" id="g-sub">—</div>
+      </div>
+    </div>
+
+    <div class="g-hint" id="g-hint"></div>
+  </div>
+
+  <div class="g-acts" id="g-acts"></div>
+</div>
+
 <div class="timer" id="timer">
   <div class="timer-n" id="timer-n">0:00</div>
   <div class="timer-l" id="timer-l">Repos</div>
   <button onclick="timerAdd(30)">+30 s</button>
+  <button onclick="timerAdd(90)">+90 s</button>
   <button onclick="timerStop()">Passer</button>
 </div>
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=11"></script>
-<script src="exercises.js?v=11"></script>
-<script src="pics.js?v=11"></script>
-<script src="anatomy.js?v=11"></script>
-<script src="alts.js?v=11"></script>
-<script src="plan.js?v=11"></script>
+<script src="data.js?v=12"></script>
+<script src="exercises.js?v=12"></script>
+<script src="pics.js?v=12"></script>
+<script src="anatomy.js?v=12"></script>
+<script src="alts.js?v=12"></script>
+<script src="plan.js?v=12"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -1351,6 +1409,220 @@ function allSets(key,n,v){
   refreshSport();home();score();
 }
 
+
+/* ══════════════════════════════════════════
+   MODE GUIDÉ
+   L'app annonce la série, compte les répétitions
+   au tempo, valide, lance le repos et enchaîne.
+   ══════════════════════════════════════════ */
+let G=null, gInt=null, gWake=null;
+
+/* Un exercice chronométré (30 s, 1 km) n'est pas compté en répétitions */
+function repTarget(r){
+  const s=String(r);
+  if(/km|m\b/.test(s) && !/rep/.test(s)) return {mode:'libre'};
+  const t=/(\d+)\s*s/.exec(s);
+  if(t) return {mode:'temps', v:+t[1]};
+  const mn=/(\d+)\s*min/.exec(s);
+  if(mn) return {mode:'temps', v:+mn[1]*60};
+  const n=/(\d+)/.exec(s);
+  return {mode:'reps', v:n?+n[1]:8};
+}
+
+function guideBuild(){
+  const day=new Date().getDay(), t=WEEK[day].t, ex=EX[t]||[];
+  const list=[];
+  ex.forEach((e0,i)=>{
+    const key=setKey(t,i,day), a=getAlt(key), e=a?{...e0,...a}:e0;
+    const sets=getSets(key,e), inf=exInfo(e.n);
+    sets.forEach((s,j)=>{
+      if(!s.d) list.push({key,i,j,name:e.n,reps:s.r,kg:s.w,
+        rest:inf.rest||90, total:sets.length, target:repTarget(e.r)});
+    });
+  });
+  return list;
+}
+
+async function guideStart(){
+  const list=guideBuild();
+  if(!list.length) return toast('Toutes les séries sont déjà validées');
+  if(!sesGet()) sesStart();
+  G={list, k:0, phase:'ready', n:0, tempo:+(localStorage.getItem('za_tempo')||3)};
+  $('guide').classList.add('on');
+  try{ if('wakeLock' in navigator) gWake=await navigator.wakeLock.request('screen'); }catch{}
+  guideRender();
+  gInt=setInterval(guideTick,1000);
+}
+
+function guideQuit(){
+  clearInterval(gInt);gInt=null;
+  if(G&&G.repInt){clearInterval(G.repInt);G.repInt=null}
+  if(gWake){try{gWake.release()}catch{} gWake=null}
+  $('guide').classList.remove('on');G=null;
+  refreshSport();home();score();
+}
+
+function cur(){return G.list[G.k]}
+
+function guideTick(){
+  if(!G)return;
+  $('g-ses').textContent=fmtDur(sesElapsed());
+  if(G.phase==='rest'){
+    G.n--;
+    if(G.n<=0){beep();G.phase='ready';}
+    guidePaint();
+  } else if(G.phase==='hold'){
+    G.n--;
+    if(G.n<=0){beep();guideValidate();return}
+    if(G.n<=3)tick();
+    guidePaint();
+  }
+}
+
+/* Compte les répétitions au tempo, avec un signal sonore à chaque fois */
+function guideGo(){
+  const c=cur(),T=c.target;
+  if(T.mode==='temps'){G.phase='hold';G.n=T.v;guidePaint();beep1();return}
+  if(T.mode==='libre'){G.phase='free';guidePaint();return}
+  G.phase='work';G.n=0;G.goal=c.reps;
+  guidePaint();beep1();
+  clearInterval(G.repInt);
+  G.repInt=setInterval(()=>{
+    G.n++;
+    if(G.n>G.goal){clearInterval(G.repInt);G.repInt=null;guideValidate();return}
+    tick();guidePaint(true);
+  },G.tempo*1000);
+}
+function guidePause(){
+  if(G.repInt){clearInterval(G.repInt);G.repInt=null;G.phase='paused';guidePaint()}
+  else if(G.phase==='paused'){G.phase='work';guidePaint();
+    G.repInt=setInterval(()=>{G.n++;if(G.n>G.goal){clearInterval(G.repInt);G.repInt=null;guideValidate();return}
+      tick();guidePaint(true)},G.tempo*1000)}
+}
+
+function guideValidate(){
+  const c=cur();
+  const e=curEx(c.key), sets=getSets(c.key,e);
+  if(sets[c.j]){sets[c.j].d=1;putSets(c.key,sets)}
+  if(G.repInt){clearInterval(G.repInt);G.repInt=null}
+  beep();
+  G.k++;
+  if(G.k>=G.list.length){G.phase='done';guidePaint();sesEnd();return}
+  G.phase='rest';G.n=c.rest;
+  guidePaint();
+}
+function guideSkip(){ if(G.repInt){clearInterval(G.repInt);G.repInt=null} guideValidate(); }
+function guideSkipEx(){
+  const c=cur();if(!c)return;
+  while(G.k<G.list.length && G.list[G.k].key===c.key) G.k++;
+  if(G.k>=G.list.length){G.phase='done'}else{G.phase='ready'}
+  if(G.repInt){clearInterval(G.repInt);G.repInt=null}
+  guidePaint();
+}
+function guideRest(s){G.n+=s;guidePaint()}
+function guideSkipRest(){G.n=0;G.phase='ready';guidePaint()}
+function setTempo(v){G.tempo=v;localStorage.setItem('za_tempo',v);guidePaint()}
+
+function guideRender(){guidePaint()}
+
+function guidePaint(beat){
+  if(!G)return;
+  const g=$('guide');
+  const c=cur();
+
+  if(G.phase==='done'){
+    g.classList.remove('g-rest');
+    $('g-exname').textContent='Séance terminée';
+    $('g-serie').textContent='BEAU TRAVAIL';
+    $('g-pic').innerHTML='';
+    $('g-big').textContent='✓';
+    $('g-sub').textContent=fmtDur(sesElapsed()).toUpperCase();
+    ring($('g-ring'),100,603);
+    $('g-hint').textContent='Toutes tes séries sont validées. Pense à t\u2019étirer et à boire.';
+    $('g-acts').innerHTML=`<button class="btn-c" onclick="guideQuit()">Fermer</button>`;
+    return;
+  }
+
+  const p=exPics(c.name);
+  $('g-exname').textContent=c.name;
+  $('g-serie').textContent=`SÉRIE ${c.j+1} SUR ${c.total}${c.kg?'  ·  '+c.kg+' KG':''}`;
+  $('g-pic').innerHTML=p?`<img src="ex/${p[G.phase==='work'&&G.n%2?1:0]}" alt=""/>`:'';
+
+  const T=c.target;
+  g.classList.toggle('g-rest',G.phase==='rest');
+
+  if(G.phase==='ready'){
+    $('g-big').textContent=T.mode==='temps'?T.v+'s':T.mode==='libre'?'▶':c.reps;
+    $('g-sub').textContent=T.mode==='reps'?'RÉPÉTITIONS À FAIRE':T.mode==='temps'?'À TENIR':'EN LIBRE';
+    ring($('g-ring'),0,603);
+    $('g-hint').innerHTML=`Mets-toi en position. Je compte pour toi, un signal à chaque répétition.<br/>
+      <span class="tiny">Tempo : ${[2,3,4].map(v=>`<button onclick="setTempo(${v})" style="text-decoration:${v===G.tempo?'underline':'none'};color:${v===G.tempo?'var(--heat1)':'var(--dim)'}">${v}s</button>`).join(' · ')}</span>`;
+    $('g-acts').innerHTML=`
+      <button class="btn-g" style="border:1px solid var(--line)" onclick="guideSkip()">Passer</button>
+      <button class="btn-p" onclick="guideGo()">▶︎ C'est parti</button>`;
+  }
+  else if(G.phase==='work'){
+    $('g-big').textContent=G.n;
+    $('g-big').className='g-big'+(beat?' beat':'');
+    if(beat)setTimeout(()=>{const el=$('g-big');if(el)el.className='g-big'},320);
+    $('g-sub').textContent='SUR '+G.goal+' RÉPÉTITIONS';
+    ring($('g-ring'),G.n/G.goal*100,603);
+    $('g-hint').textContent='Descends en contrôlant, remonte en poussant. Suis le rythme.';
+    $('g-acts').innerHTML=`
+      <button class="btn-g" style="border:1px solid var(--line)" onclick="guidePause()">Pause</button>
+      <button class="btn-c" onclick="guideValidate()">J'ai fini</button>`;
+  }
+  else if(G.phase==='paused'){
+    $('g-big').textContent=G.n;
+    $('g-sub').textContent='EN PAUSE';
+    $('g-hint').textContent='Reprends quand tu es prêt.';
+    $('g-acts').innerHTML=`
+      <button class="btn-p" onclick="guidePause()">Reprendre</button>
+      <button class="btn-c" onclick="guideValidate()">J'ai fini</button>`;
+  }
+  else if(G.phase==='hold'){
+    $('g-big').textContent=G.n;
+    $('g-sub').textContent='SECONDES RESTANTES';
+    ring($('g-ring'),(1-G.n/c.target.v)*100,603);
+    $('g-hint').textContent='Tiens la position. Respire normalement.';
+    $('g-acts').innerHTML=`<button class="btn-c" onclick="guideValidate()">J'ai fini</button>`;
+  }
+  else if(G.phase==='free'){
+    $('g-big').textContent='▶';
+    $('g-sub').textContent=String(c.target.mode==='libre'?'À TON RYTHME':'').toUpperCase();
+    $('g-hint').textContent='Fais l\u2019effort, puis valide quand tu as terminé.';
+    $('g-acts').innerHTML=`<button class="btn-c" onclick="guideValidate()">J'ai fini</button>`;
+  }
+  else if(G.phase==='rest'){
+    const m=Math.floor(G.n/60),s=G.n%60;
+    $('g-big').textContent=m?m+':'+String(s).padStart(2,'0'):s;
+    $('g-sub').textContent='REPOS';
+    ring($('g-ring'),(1-G.n/(c.rest||90))*100,603);
+    const nx=G.list[G.k];
+    $('g-hint').innerHTML=nx?`Ensuite : <b>${nx.name}</b> — série ${nx.j+1} sur ${nx.total}`:'';
+    $('g-acts').innerHTML=`
+      <button class="btn-g" style="border:1px solid var(--line)" onclick="guideRest(30)">+30 s</button>
+      <button class="btn-g" style="border:1px solid var(--line)" onclick="guideRest(90)">+90 s</button>
+      <button class="btn-p" onclick="guideSkipRest()">Passer</button>`;
+  }
+}
+
+/* Signaux sonores : un clic léger par répétition, un triple bip en fin de série */
+function tone(f,d,v){
+  try{
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+    G._ac=G._ac||new C();const c=G._ac;
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(v||.22,c.currentTime+.015);
+    g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+d);
+    o.start();o.stop(c.currentTime+d+.02);
+  }catch(e){}
+}
+function tick(){tone(660,.08,.18);if(navigator.vibrate)navigator.vibrate(14)}
+function beep1(){tone(520,.14,.24)}
+
 /* ══════ CHRONO DE SÉANCE ══════ */
 let sesInt=null;
 function sesKey(){return 'za_ses_'+dk()}
@@ -1390,8 +1662,10 @@ function tickSession(){
 function sessionBar(prog){
   const s=sesGet();
   if(!s) return `<div class="card" style="margin:0 0 13px">
-      <button class="btn btn-p" onclick="sesStart()">▶︎ Lancer la séance</button>
-      <div class="tiny dim" style="margin-top:10px;text-align:center">Le chrono tourne et le repos se déclenche à chaque série validée.</div>
+      <button class="btn btn-p" onclick="guideStart()">▶︎ Lancer la séance guidée</button>
+      <div class="tiny dim" style="margin-top:11px;text-align:center;line-height:1.5">
+        L'app annonce chaque série, compte les répétitions à ta place et lance le repos toute seule.</div>
+      <button class="btn btn-g" style="margin-top:11px" onclick="sesStart()">Juste le chrono, je gère seul</button>
     </div>`;
   if(s.done) return `<div class="card" style="margin:0 0 13px;border-color:rgba(0,229,176,.3)">
       <div class="rowb">
@@ -1407,6 +1681,7 @@ function sessionBar(prog){
           <div class="mono" style="font-size:20px;font-weight:700;margin-top:5px">${prog.done}<span class="dim" style="font-size:13px">/${prog.total}</span></div></div>
       </div>
       <div class="bar" style="margin-bottom:13px"><i class="fill-h" style="width:${prog.pct}%"></i></div>
+      <button class="btn btn-p" style="margin-bottom:9px" onclick="guideStart()">▶︎ Reprendre en mode guidé</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-g" onclick="timerStart(90,'Repos')" style="flex:1">⏱ Repos 90 s</button>
         <button class="btn btn-c" onclick="sesEnd()" style="flex:1">Terminer</button>
@@ -2694,7 +2969,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='11';
+  const V='12';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2702,7 +2977,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=11').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=12').catch(()=>{});
 }
 </script>
 </body>
