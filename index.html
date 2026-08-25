@@ -662,7 +662,7 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
           <div class="dsp" style="font-size:60px;margin:9px 0 2px;background:linear-gradient(140deg,var(--heat1),var(--heat3));-webkit-background-clip:text;background-clip:text;color:transparent" id="pd-kg">—</div>
           <div class="tiny dim" id="pd-when">—</div>
           <div class="bar" style="margin-top:19px"><i class="fill-h" id="pd-bar" style="width:0"></i></div>
-          <div class="rowb mono tiny dim" style="margin-top:8px"><span>95 kg</span><span id="pd-pct">—</span><span>80 kg</span></div>
+          <div class="rowb mono tiny dim" style="margin-top:8px"><span id="pd-lo">—</span><span id="pd-pct">—</span><span>80 kg</span></div>
           <button class="btn btn-p" style="margin-top:18px" onclick="sheet('sh-poids')">⚖️ Enregistrer mon poids</button>
         </div>
         <div class="card">
@@ -780,7 +780,7 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
       <div class="card">
         <div class="rowb" style="padding:9px 0"><span class="tiny">Version</span><span class="mono tiny">2.0.0</span></div>
         <div class="hr" style="margin:4px 0"></div>
-        <div class="rowb" style="padding:9px 0"><span class="tiny">Départ · Objectif</span><span class="mono tiny">95 → 80 kg</span></div>
+        <div class="rowb" style="padding:9px 0"><span class="tiny">Départ · Objectif</span><span class="mono tiny" id="ad-range">—</span></div>
         <div class="hr" style="margin:4px 0"></div>
         <div class="rowb" style="padding:9px 0"><span class="tiny">Jour de repos</span><span class="mono tiny" style="color:var(--rest)">VENDREDI</span></div>
       </div>
@@ -801,6 +801,8 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
           <div class="fg"><label class="fl">TAILLE (CM)</label><input class="fi" id="a-cm" inputmode="numeric"/></div>
           <div class="fg"><label class="fl">ÂGE</label><input class="fi" id="a-age" inputmode="numeric"/></div>
         </div>
+        <div class="fg"><label class="fl">POIDS DE DÉPART (KG)</label><input class="fi" id="a-start" inputmode="decimal"/>
+          <div class="tiny dim" style="margin-top:7px;line-height:1.5">Sert de référence pour tes phases et ta progression. Par défaut, ta première pesée.</div></div>
         <button class="btn btn-p" onclick="saveProfile()">Enregistrer</button>
         <div class="tiny dim" style="margin-top:11px;line-height:1.5">Ces valeurs servent au calcul de ta dépense énergétique quotidienne.</div>
       </div>
@@ -1023,17 +1025,29 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=12"></script>
-<script src="exercises.js?v=12"></script>
-<script src="pics.js?v=12"></script>
-<script src="anatomy.js?v=12"></script>
-<script src="alts.js?v=12"></script>
-<script src="plan.js?v=12"></script>
+<script src="data.js?v=13"></script>
+<script src="exercises.js?v=13"></script>
+<script src="pics.js?v=13"></script>
+<script src="anatomy.js?v=13"></script>
+<script src="alts.js?v=13"></script>
+<script src="plan.js?v=13"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJheGV2amh2ZG9xbHVzeW5manp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4OTA4MDksImV4cCI6MjEwMTQ2NjgwOX0.IjGaltumNdUylM1wYZ3EgwBRV47lxORskihIkc13suQ';
-const START=95, GOAL=80;
+const GOAL=80;
+/* Le point de départ est ta première pesée, pas un chiffre figé.
+   Réglable dans les paramètres si tu veux l'ancrer ailleurs.      */
+function startKg(){
+  const m=+localStorage.getItem('za_start');
+  if(m) return m;
+  try{
+    const w=JSON.parse(localStorage.getItem('za_weights'))||[];
+    if(w.length) return w[0].kg;
+  }catch{}
+  return 95;
+}
+Object.defineProperty(window,'START',{get:startKg});
 
 /* ══════ STORAGE ══════ */
 const LS={
@@ -1060,7 +1074,7 @@ let S={
 /* Les objectifs suivent le poids du jour et la séance prévue */
 Object.defineProperty(S,'goals',{get(){
   if(S.manual)return S.manual;
-  return dailyTargets(curKg()||START,WEEK[new Date().getDay()].t,S.profile);
+  return dailyTargets(curKg()||START,WEEK[new Date().getDay()].t,{...S.profile,start:startKg()});
 }});
 
 const WEEK={
@@ -1215,7 +1229,15 @@ function home(){
   $('topscore').textContent=sc;ring($('topring'),sc,75.4);
   checkNewTrophies();
 }
-function phaseName(kg){return kg>=90?'Phase 1':kg>=85?'Phase 2':'Phase 3'}
+/* Trois paliers réguliers entre ton départ réel et 80 kg */
+function phaseBounds(){
+  const s=startKg(), step=(s-GOAL)/3;
+  return [[s, s-step], [s-step, s-2*step], [s-2*step, GOAL]];
+}
+function phaseName(kg){
+  const b=phaseBounds();
+  return kg>b[0][1] ? 'Phase 1' : kg>b[1][1] ? 'Phase 2' : 'Phase 3';
+}
 
 /* ══════ SPORT ══════ */
 let viewDay=new Date().getDay();
@@ -1907,6 +1929,7 @@ function poids(){
   $('pd-when').textContent=w?frDate(w.d):'Aucune pesée enregistrée';
   const pct=kg?Math.min(100,Math.max(0,(START-kg)/(START-GOAL)*100)):0;
   $('pd-bar').style.width=pct+'%';$('pd-pct').textContent=Math.round(pct)+'%';
+  $('pd-lo').textContent=startKg().toFixed(0)+' kg';
   const l7=S.weights.slice(-7);
   if(l7.length){
     $('pd-avg').textContent=(l7.reduce((a,b)=>a+b.kg,0)/l7.length).toFixed(1)+' kg';
@@ -1980,15 +2003,18 @@ function poids(){
 
   // phases
   const c=kg||START;
-  const PH=[['Phase 1','95 → 90 kg','Apprendre à manger pour l\'entraînement',90,95],
-            ['Phase 2','90 → 85 kg','Progresser en performance',85,90],
-            ['Phase 3','85 → 80 kg','Finition, maintien musculaire',80,85]];
+  const B=phaseBounds();
+  const PH=[
+    ['Phase 1', B[0], 'Apprendre à manger pour l\'entraînement'],
+    ['Phase 2', B[1], 'Progresser en performance'],
+    ['Phase 3', B[2], 'Finition, maintien musculaire']];
   $('phases').innerHTML=PH.map(p=>{
-    const done=c<p[3],act=c<p[4]&&c>=p[3];
-    const prog=act?Math.min(100,Math.max(0,(p[4]-c)/(p[4]-p[3])*100)):done?100:0;
+    const hi=p[1][0], lo=p[1][1];
+    const done=c<lo, act=c<=hi&&c>=lo;
+    const prog=act?Math.min(100,Math.max(0,(hi-c)/(hi-lo)*100)):done?100:0;
     return `<div class="card" style="margin:0 0 11px;${act?'border-color:rgba(255,95,61,.3)':''}">
       <div class="rowb" style="margin-bottom:11px">
-        <div><b style="font-size:14.5px">${p[0]} · ${p[1]}</b>
+        <div><b style="font-size:14.5px">${p[0]} · ${hi.toFixed(1)} → ${lo.toFixed(1)} kg</b>
           <div class="tiny dim" style="margin-top:3px">${p[2]}</div></div>
         <span class="pill ${done?'cool':act?'heat':''}">${done?'FAIT':act?'EN COURS':'À VENIR'}</span></div>
       <div class="bar"><i class="${done?'fill-c':'fill-h'}" style="width:${prog}%"></i></div></div>`;
@@ -2173,7 +2199,7 @@ Analyse mon rapport ZATHLETE et donne-moi mon plan pour la semaine suivante.
 
 CONTRAINTES
 • Taille : 171 cm
-• Départ : 95 kg — Objectif : 80 kg
+• Départ : ${startKg().toFixed(1)} kg — Objectif : 80 kg
 • Physique visé : athlétique et sec, sans volume excessif
 • Jour de repos FIXE et non négociable : vendredi
 • Programme : musculation + Hyrox + calisthenics
@@ -2313,8 +2339,10 @@ function setPin(){
 }
 function loadAdminSettings(){
   renderGoals();
-  const p=$('a-cm'),a=$('a-age');
+  const p=$('a-cm'),a=$('a-age'),s=$('a-start'),r=$('ad-range');
   if(p)p.value=S.profile.cm;if(a)a.value=S.profile.age;
+  if(s)s.value=startKg().toFixed(1);
+  if(r)r.textContent=startKg().toFixed(1)+' → '+GOAL+' kg';
 }
 function renderGoals(){
   const el=$('c-goals');if(!el)return;
@@ -2343,7 +2371,10 @@ function saveGoals(){
 }
 function saveProfile(){
   S.profile={cm:+$('a-cm').value||171,age:+$('a-age').value||35};
-  LS.set('profile',S.profile);toast('✓ Profil enregistré');renderAll();
+  LS.set('profile',S.profile);
+  const st=+$('a-start').value;
+  if(st>=40&&st<=250)localStorage.setItem('za_start',st);
+  toast('✓ Profil enregistré');loadAdminSettings();renderAll();
 }
 function expData(){
   const b=new Blob([JSON.stringify({...S,export:new Date().toISOString()},null,2)],{type:'application/json'});
@@ -2969,7 +3000,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='12';
+  const V='13';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -2977,7 +3008,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=12').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=13').catch(()=>{});
 }
 </script>
 </body>
