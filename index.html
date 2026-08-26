@@ -426,6 +426,12 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 .g-acts{display:flex;gap:9px;flex-shrink:0;flex-wrap:wrap}
 .g-acts button{flex:1;min-width:88px;padding:16px 10px;border-radius:999px;font-size:13px;font-weight:600}
 .g-rest .g-big{color:var(--cool1)}
+/* ─── graphiques rapport ─── */
+.rch{width:100%;height:140px;display:block;margin:14px 0 8px}
+.rch-wrap{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:16px}
+.rch-box{background:rgba(0,0,0,.2);border-radius:18px;padding:14px;overflow:hidden}
+.rch-box .rch{height:110px;margin:8px 0 0}
+.rch-t{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--dim)}
 /* ═══ ÉCRAN LARGE : on centre l'app au lieu de tout étirer ═══ */
 @media (min-width:720px){
   body{background:#05070C}
@@ -458,7 +464,7 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
   </div>
   <div>
     <div class="lk-name">Z<em>ATHLETE</em></div>
-    <div class="lk-tag">95 KG → 80 KG</div>
+    <div class="lk-tag">PROJECT ATHLETE</div>
   </div>
   <div class="dots"><i class="dot" id="k0"></i><i class="dot" id="k1"></i><i class="dot" id="k2"></i><i class="dot" id="k3"></i></div>
   <div class="keys">
@@ -813,7 +819,8 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
         <button class="btn btn-g" onclick="testSb()" style="margin-bottom:11px">Tester la connexion</button>
         <button class="btn btn-g" onclick="expData()" style="margin-bottom:11px">Exporter mes données</button>
         <button class="btn btn-g" onclick="clearMyPics()" style="margin-bottom:11px">Effacer mes photos d'exercices</button>
-        <button class="btn" style="background:rgba(232,54,95,.14);border:1px solid rgba(232,54,95,.3);color:#FF7A94" onclick="wipe()">Tout effacer</button>
+        <button class="btn" style="background:rgba(232,54,95,.14);border:1px solid rgba(232,54,95,.3);color:#FF7A94;margin-bottom:11px" onclick="wipeAll()">🗑️ Tout réinitialiser</button>
+        <div class="tiny dim" style="line-height:1.5">Efface toutes tes données : poids, repas, séances, mensurations, aliments, trophées. Irréversible.</div>
       </div>
       <div style="height:6px"></div>
     </section>
@@ -1025,12 +1032,12 @@ body.timing .tst{bottom:calc(178px + var(--safe-b))}
 
 <div class="tst" id="tst"></div>
 
-<script src="data.js?v=13"></script>
-<script src="exercises.js?v=13"></script>
-<script src="pics.js?v=13"></script>
-<script src="anatomy.js?v=13"></script>
-<script src="alts.js?v=13"></script>
-<script src="plan.js?v=13"></script>
+<script src="data.js?v=14"></script>
+<script src="exercises.js?v=14"></script>
+<script src="pics.js?v=14"></script>
+<script src="anatomy.js?v=14"></script>
+<script src="alts.js?v=14"></script>
+<script src="plan.js?v=14"></script>
 <script>
 /* ══════ CONFIG ══════ */
 const SB_URL='https://baxevjhvdoqlusynfjzy.supabase.co';
@@ -1645,6 +1652,84 @@ function tone(f,d,v){
 function tick(){tone(660,.08,.18);if(navigator.vibrate)navigator.vibrate(14)}
 function beep1(){tone(520,.14,.24)}
 
+
+/* ══════════════════════════════════════════
+   GRAPHIQUES POUR LES RAPPORTS
+   SVG inline, pas de librairie externe
+   ══════════════════════════════════════════ */
+function svgLine(data, w, ht, color, label){
+  if(!data.length)return `<div class="empty" style="padding:16px"><div>📊</div>Pas assez de données</div>`;
+  const vals=data.map(d=>d.v), labels=data.map(d=>d.l);
+  const mn=Math.min(...vals), mx=Math.max(...vals), rg=(mx-mn)||1;
+  const pad=14, pw=w-pad*2, ph=ht-pad*2-14;
+  const X=i=>pad+i*(pw/Math.max(1,data.length-1));
+  const Y=v=>pad+10+ph-((v-mn)/rg)*ph;
+
+  let path='',area='',dots='';
+  data.forEach((d,i)=>{
+    const x=X(i),y=Y(d.v);
+    if(i===0){path=`M${x},${y}`;area=`M${x},${ht-pad} L${x},${y}`}
+    else{const px=X(i-1),py=Y(data[i-1].v),cx=(px+x)/2;
+      path+=` C${cx},${py} ${cx},${y} ${x},${y}`;
+      area+=` C${cx},${py} ${cx},${y} ${x},${y}`}
+    dots+=`<circle cx="${x}" cy="${y}" r="${i===data.length-1?4:2.4}" fill="${color}"/>`;
+  });
+  area+=` L${X(data.length-1)},${ht-pad} Z`;
+
+  // X labels : premier, milieu, dernier
+  const xl=[0, Math.floor(data.length/2), data.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+  const xlHtml=xl.map(i=>`<text x="${X(i)}" y="${ht-2}" fill="var(--dim)" font-size="7.5" font-family="JetBrains Mono" text-anchor="middle">${labels[i]||''}</text>`).join('');
+
+  return `<svg viewBox="0 0 ${w} ${ht}" class="rch" preserveAspectRatio="none">
+    <defs><linearGradient id="rfill_${label}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity=".25"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#rfill_${label})"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}
+    <text x="${pad}" y="${pad+4}" fill="var(--dim)" font-size="7" font-family="JetBrains Mono">${mx.toFixed(1)}</text>
+    <text x="${pad}" y="${ht-pad-4}" fill="var(--dim)" font-size="7" font-family="JetBrains Mono">${mn.toFixed(1)}</text>
+    ${xlHtml}
+  </svg>`;
+}
+
+function svgBar(data, w, ht, color){
+  if(!data.length)return '';
+  const mx=Math.max(...data.map(d=>d.v))||1;
+  const pad=14, bw=Math.max(8,Math.min(28,(w-pad*2-data.length*4)/data.length));
+  const ph=ht-pad*2-14;
+  const X=i=>pad+i*((w-pad*2)/data.length)+(w-pad*2)/data.length/2-bw/2;
+
+  return `<svg viewBox="0 0 ${w} ${ht}" class="rch" preserveAspectRatio="none">
+    ${data.map((d,i)=>{
+      const bh=Math.max(3,(d.v/mx)*ph);
+      return `<rect x="${X(i)}" y="${ht-pad-14-bh}" width="${bw}" height="${bh}" rx="${bw/2}" fill="${d.v>=d.t?'#00E5B0':color}" opacity=".8"/>
+        <text x="${X(i)+bw/2}" y="${ht-2}" fill="var(--dim)" font-size="7" font-family="JetBrains Mono" text-anchor="middle">${d.l||''}</text>`;
+    }).join('')}
+  </svg>`;
+}
+
+/* Données pour les graphiques de rapport */
+function chartWeights(n){
+  return S.weights.slice(-n).map(w=>({v:w.kg, l:w.d.slice(5)}));
+}
+function chartProt(n){
+  const days={};S.meals.forEach(m=>{days[m.d]=(days[m.d]||0)+(+m.p||0)});
+  return Object.keys(days).sort().slice(-n).map(d=>({v:days[d], l:d.slice(5), t:S.goals.prot}));
+}
+function chartWater(n){
+  return Object.keys(S.water).sort().slice(-n).map(d=>({v:S.water[d], l:d.slice(5), t:S.goals.eau}));
+}
+function chartSleep(n){
+  return S.sleep.slice(-n).map(s=>({v:s.h, l:s.d.slice(5), t:7}));
+}
+function chartTaille(){
+  return S.weekly.filter(w=>w.taille).map(w=>({v:+w.taille, l:w.d.slice(5)}));
+}
+function chartBf(){
+  return S.weekly.filter(w=>{const c=bodyComp(w.kg,w,S.profile);return c!==null})
+    .map(w=>{const c=bodyComp(w.kg,w,S.profile);return{v:c.bf, l:w.d.slice(5)}});
+}
+
 /* ══════ CHRONO DE SÉANCE ══════ */
 let sesInt=null;
 function sesKey(){return 'za_ses_'+dk()}
@@ -2181,7 +2266,7 @@ function score(){
     <b>POIDS ACTUEL :</b> ${kg?kg.toFixed(1)+' kg':'—'}<br/>
     <b>MOYENNE 7 J :</b> ${avg?avg.toFixed(1)+' kg':'—'}<br/>
     <b>VARIATION :</b> ${vr?(vr>0?'+':'')+vr.toFixed(1)+' kg':'—'}<br/>
-    <b>PERDU DEPUIS 95 KG :</b> ${kg?(START-kg).toFixed(1)+' kg':'—'}<br/>
+    <b>PERDU DEPUIS LE DÉBUT :</b> ${kg?(START-kg).toFixed(1)+' kg':'—'}<br/>
     <b>RESTANT VERS 80 KG :</b> ${kg?(kg-GOAL).toFixed(1)+' kg':'—'}<br/>
     <b>TOUR DE TAILLE :</b> ${lw&&lw.taille?lw.taille+' cm':'—'}<br/>
     <b>SÉANCE DU JOUR :</b> ${t}${t!=='Repos'?' · '+exProg(t).pct+'%':''}<br/>
@@ -2380,6 +2465,13 @@ function expData(){
   const b=new Blob([JSON.stringify({...S,export:new Date().toISOString()},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);
   a.download='zathlete-'+dk()+'.json';a.click();toast('📤 Fichier téléchargé');
+}
+function wipeAll(){
+  if(!confirm('⚠️ RÉINITIALISER ABSOLUMENT TOUT ?\n\nCette action efface :\n• Tous tes poids et bilans\n• Tous tes repas et aliments personnels\n• Toutes tes séances et variantes\n• Ton sommeil, ta tension, tes trophées\n• Tes photos d\'exercices\n• Tes réglages\n\nC\'est irréversible. Tu repars de zéro.'))return;
+  if(!confirm('Dernière confirmation : tu es sûr ?'))return;
+  localStorage.clear();
+  if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
+  location.reload();
 }
 function wipe(){
   if(!confirm('Effacer toutes tes données ? Cette action est définitive.'))return;
@@ -2842,8 +2934,9 @@ function box(title,body,btn){
 function L(k,v){return `<b>${k} :</b> ${v}<br/>`}
 function rpJour(){
   const T=today(),g=S.goals,t=WEEK[new Date().getDay()].t,w=S.weights.find(x=>x.d===dk());
+  const dChart=chartWeights(7).length>1?`<div class="rch-box" style="margin-bottom:14px"><div class="rch-t">POIDS · 7 DERNIERS JOURS</div>${svgLine(chartWeights(7),340,100,'#FF5F3D','wd')}</div>`:'';
   const sl=S.sleep.filter(x=>x.d===dk())[0],p=t==='Repos'?null:exProg(t);
-  $('rp-body').innerHTML=box('BILAN DU JOUR',
+  $('rp-body').innerHTML=dChart+box('BILAN DU JOUR',
     L('DATE',frDate(dk()))+
     L('POIDS',w?w.kg.toFixed(1)+' kg':'non pesé')+
     L('SÉANCE',t==='Repos'?'Repos respecté':t+' — '+p.done+'/'+p.total+' séries ('+p.pct+'%)')+
@@ -2866,7 +2959,13 @@ function rpSemaine(){
   const sl=S.sleep.filter(x=>x.d>=ws);
   const slAvg=sl.length?sl.reduce((a,b)=>a+b.h,0)/sl.length:0;
   const lw=S.weekly.length?S.weekly[S.weekly.length-1]:null;
-  $('rp-body').innerHTML=box('RAPPORT HEBDOMADAIRE',
+  const charts=`<div class="rch-wrap">
+    <div class="rch-box"><div class="rch-t">POIDS · 14 J</div>${svgLine(chartWeights(14),280,110,'#FF5F3D','w1')}</div>
+    <div class="rch-box"><div class="rch-t">PROTÉINES · 7 J</div>${svgBar(chartProt(7),280,110,'#FF8A4C')}</div>
+    <div class="rch-box"><div class="rch-t">EAU · 7 J</div>${svgBar(chartWater(7),280,110,'#00B3D9')}</div>
+    <div class="rch-box"><div class="rch-t">SOMMEIL · 7 J</div>${svgBar(chartSleep(7),280,110,'#8B7BFF')}</div>
+  </div>`;
+  $('rp-body').innerHTML=charts+box('RAPPORT HEBDOMADAIRE',
     L('SEMAINE DU',frDate(ws))+
     L('POIDS MOYEN',avg?avg.toFixed(1)+' kg':'—')+
     L('SEMAINE PRÉCÉDENTE',prevAvg?prevAvg.toFixed(1)+' kg':'—')+
@@ -2884,6 +2983,12 @@ function rpSemaine(){
 }
 function rpMois(){
   const d30=dk(new Date(Date.now()-30*864e5));
+  const mCharts=`<div class="rch-wrap">
+    <div class="rch-box"><div class="rch-t">POIDS · 30 J</div>${svgLine(chartWeights(30),280,110,'#FF5F3D','w2')}</div>
+    <div class="rch-box"><div class="rch-t">PROTÉINES · 30 J</div>${svgBar(chartProt(30),280,110,'#FF8A4C')}</div>
+    <div class="rch-box"><div class="rch-t">TOUR DE TAILLE</div>${svgLine(chartTaille(),280,110,'#00E5B0','t1')}</div>
+    <div class="rch-box"><div class="rch-t">MASSE GRASSE %</div>${svgLine(chartBf(),280,110,'#E8365F','bf1')}</div>
+  </div>`;
   const w=S.weights.filter(x=>x.d>=d30);
   const first=w.length?w[0].kg:null,last=w.length?w[w.length-1].kg:null;
   const m=S.meals.filter(x=>x.d>=d30);
@@ -2894,7 +2999,7 @@ function rpMois(){
   const sl=S.sleep.filter(x=>x.d>=d30);
   const got=trophyGot(),tn=TROPHIES.filter(t=>got[t.id]).length;
   const x=calcXP();
-  $('rp-body').innerHTML=box('RAPPORT MENSUEL — 30 DERNIERS JOURS',
+  $('rp-body').innerHTML=mCharts+box('RAPPORT MENSUEL — 30 DERNIERS JOURS',
     L('POIDS DÉBUT',first?first.toFixed(1)+' kg':'—')+
     L('POIDS FIN',last?last.toFixed(1)+' kg':'—')+
     L('VARIATION',(first&&last)?((last-first>0?'+':'')+(last-first).toFixed(1)+' kg'):'—')+
@@ -3000,7 +3105,7 @@ function go(p){
 }
 /* Purge du cache si la version a changé — évite de rester bloqué sur une vieille build */
 (function(){
-  const V='13';
+  const V='14';
   if(localStorage.getItem('za_build')!==V){
     localStorage.setItem('za_build',V);
     if(window.caches)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
@@ -3008,7 +3113,7 @@ function go(p){
 })();
 if('serviceWorker'in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{if(!r.active||!r.active.scriptURL.includes('sw.js'))r.unregister()}));
-  navigator.serviceWorker.register('sw.js?v=13').catch(()=>{});
+  navigator.serviceWorker.register('sw.js?v=14').catch(()=>{});
 }
 </script>
 </body>

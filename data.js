@@ -192,7 +192,7 @@ const QUOTES = [
   ["Tu n'as pas besoin d'être motivé, tu as besoin d'être régulier.","ZATHLETE"],
   ["La faim passe. La fierté reste.","ZATHLETE"],
   ["Chaque série cochée est une brique du 80.","ZATHLETE"],
-  ["95 était un point de départ. 80 est une décision.","ZATHLETE"],
+  ["Le premier jour était un point de départ. 80 est une décision.","ZATHLETE"],
 ];
 
 /* ─── TROPHÉES ─── */
@@ -200,7 +200,7 @@ const TROPHIES = [
   {id:'first_w',  e:'⚖️', n:'Premier pas',          d:'Enregistrer ta première pesée'},
   {id:'w7',       e:'📅', n:'Une semaine de suivi',  d:'7 pesées enregistrées'},
   {id:'w30',      e:'🗓️', n:'Un mois de rigueur',    d:'30 pesées enregistrées'},
-  {id:'kg1',      e:'🔻', n:'Le premier kilo',       d:'1 kg perdu depuis 95 kg'},
+  {id:'kg1',      e:'🔻', n:'Le premier kilo',       d:'1 kg perdu depuis le début'},
   {id:'kg5',      e:'🏔️', n:'Cinq de moins',         d:'5 kg perdus'},
   {id:'kg10',     e:'💎', n:'Dix de moins',          d:'10 kg perdus'},
   {id:'phase2',   e:'2️⃣', n:'Phase 2 atteinte',      d:'Passer sous les 90 kg'},

@@ -19,7 +19,7 @@ function bmr(kg, cm, age){        // Mifflin-St Jeor, homme
 /* Déficit adapté à la phase : plus on approche de l'objectif,
    plus il s'allège pour protéger le muscle et les performances. */
 function deficitPct(kg, start){
-  const s = start || 95;
+  const s = start || (typeof startKg==='function'?startKg():95);
   if(s <= 80) return .12;
   const done = (s - kg) / (s - 80);   // part du chemin parcouru
   if(done < 0.34) return .19;         // début : on peut pousser
@@ -31,10 +31,10 @@ function dailyTargets(kg, type, profile){
   const P = profile || {};
   const cm  = P.cm  || 171;
   const age = P.age || 35;
-  const w   = kg || 95;
+  const w   = kg || (typeof startKg==='function'?startKg():95);
 
   const tdee = bmr(w, cm, age) * (ACT[type] ?? 1.55);
-  const kcal = Math.round((tdee * (1 - deficitPct(w, (P.start||95)))) / 10) * 10;
+  const kcal = Math.round((tdee * (1 - deficitPct(w, (P.start||(typeof startKg==='function'?startKg():95))))) / 10) * 10;
 
   // Protéines calées sur le poids cible intermédiaire, pas sur le poids brut
   const anchor = Math.max(80, Math.round(w - (w - 80) * 0.45));
